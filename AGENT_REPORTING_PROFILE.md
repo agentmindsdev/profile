@@ -1,11 +1,18 @@
 # AgentMinds Reporting Profile (ARP)
 
-**Version:** 1.1.0
+**Version:** 1.1.1
 **Status:** Internal profile — open for public comment
 **Maintainer:** AgentMinds (`api.agentminds.dev`)
 **License:** CC-BY-4.0
 
-> **What's new in 1.1.0** (2026-04-27): additive backwards-compat
+> **What's new in 1.1.1** (2026-04-27, additive over 1.1.0):
+>
+> - **§3.6 Breadcrumb-trail array on Warning** — Sentry-aligned, debug observability for cascade failures
+> - **§5 normative reference: OpenInference v1** — adopt the upstream spec's attribute namespace (`openinference.span.kind`, `llm.*`, `retrieval.*`, `tool.*`); spec text only, Phoenix implementation excluded (ELv2 license guardrail per the deep-dive REJECT list)
+> - **§5.1 TelemetrySpan typed shape** — opt-in, with `kind` (10-value OpenInference enum) and `subtype` (8-value OpenAI Agents enum)
+> - **§6.1 SkillManifest expansion** — agentskills.io 6 open-spec frontmatter fields (`name`, `description`, `version`, `license`, `metadata`, `compatibility`); new `auto_invocable` flag (polarity-flipped from Anthropic Skills' `disable-model-invocation`, default false / opt-in)
+>
+> **What was new in 1.1.0** (2026-04-27): additive backwards-compat
 > spec extension driven by [`docs/research/standards_deepdive_2026_04_27/ULTIMATE_PROFILE_RECOMMENDATION.md`](research/standards_deepdive_2026_04_27/ULTIMATE_PROFILE_RECOMMENDATION.md):
 >
 > - **§3.5 Score primitive** — typed evaluation outcomes (numeric / categorical / boolean) for LangSmith / Langfuse / OpenInference interop
@@ -13,7 +20,7 @@
 > - **§3.3 Fingerprint union** — `string` (canonical) OR `string[]` (Sentry-aligned, with `{{ default }}` placeholder support); v1.0 senders unaffected
 > - **§2 envelope additions:** `session_id`, `user_id`, `conversation_id` for multi-turn agent flow correlation (LangSmith Threads / OTel `gen_ai.conversation.id` aliases)
 >
-> All v1.0 senders continue to validate against the v1.1 schema unchanged. v1.1 senders gain the new fields without breaking v1.0 collectors (collectors MUST ignore unknown fields per §7).
+> All v1.0 senders continue to validate against the v1.1.x schema unchanged. v1.1.x senders gain the new fields without breaking v1.0 collectors (collectors MUST ignore unknown fields per §7).
 
 ---
 
@@ -340,6 +347,31 @@ Default freshness windows:
 `title` is REQUIRED; everything else is OPTIONAL but `priority`,
 `fingerprint`, and `category` are STRONGLY RECOMMENDED.
 
+### 3.6 `Breadcrumb` trail (v1.1.1)
+
+A `Breadcrumb` is a timestamped event leading up to a Warning.
+Sentry-aligned. Critical for understanding *cascade failures* —
+the chain of "user clicked X → DB query Y → 500 from Z" before the
+warning fired.
+
+```jsonc
+{
+  "timestamp": "<RFC 3339>",
+  "type":      "navigation" | "http" | "error" | "info"
+              | "query" | "ui" | "user" | "default",
+  "category":  "<free-form, e.g. 'console', 'fetch', 'agent.call'>",
+  "message":   "<human-readable>",
+  "level":     "<Severity>",
+  "data":      { ... }
+}
+```
+
+Attach as `Warning.breadcrumbs[]` (optional). Senders SHOULD cap
+at ~50 breadcrumbs per warning to avoid payload bloat. Order
+chronologically (oldest first, most-recent last).
+
+**REQUIRED:** `timestamp`, `type`. Everything else is OPTIONAL.
+
 ### 3.5 `Score` object (v1.1)
 
 Typed evaluation outcome. Lineage: Langfuse Score model + LangSmith
@@ -478,6 +510,57 @@ Recommended attribute names:
 | `agentminds.site_id` | string | ARP extension |
 | `agentminds.agent_name` | string | ARP extension |
 
+### 5.1 Normative references (v1.1.1)
+
+ARP §5 telemetry adopts these upstream specs **by reference**.
+Senders SHOULD use upstream attribute names verbatim and namespace
+ARP-specific extensions under `agentminds.*` per §2.1.
+
+| Spec | Version | License | What ARP adopts |
+|---|---|---|---|
+| **OpenTelemetry GenAI semconv** | 1.27+ | Apache-2.0 | The full `gen_ai.*` attribute namespace, span shapes, and event types |
+| **OpenInference v1** | spec only | Apache-2.0 | The `openinference.span.kind` 10-value enum (LLM/CHAIN/TOOL/RETRIEVER/EMBEDDING/AGENT/GUARDRAIL/EVALUATOR/RERANKER/UNKNOWN), `llm.*`/`retrieval.*`/`tool.*` attribute namespaces, prompt/response capture conventions |
+| **OpenAI Agents span subtypes** | SDK 0.1+ | (vendor-defined) | The 8-value `subtype` enum: `agent_span` / `generation_span` / `function_span` / `guardrail_span` / `handoff_span` / `transcription_span` / `speech_span` / `custom_span` |
+
+**Important — what ARP does NOT adopt from OpenInference:**
+
+We adopt the **spec text** (Apache-2.0) only. We explicitly do NOT
+take a runtime dependency on Phoenix code (Elastic License v2 + US
+patent claims) — see the deep-dive REJECT list. Implementers
+following ARP for telemetry should:
+
+- ✅ Reuse OpenInference attribute names directly
+- ✅ Adopt the 10-value span-kind enum
+- ❌ NOT vendor-bundle Phoenix runtime as part of an ARP collector
+
+### 5.2 `TelemetrySpan` typed shape (v1.1.1)
+
+```jsonc
+{
+  "name":        "openai.chat.completions.create",
+  "kind":        "LLM",                // OpenInference 10-enum
+  "subtype":     "generation_span",    // OpenAI Agents 8-enum
+  "trace_id":    "<hex>",
+  "span_id":     "<hex>",
+  "parent_span_id": "<hex>",
+  "start_time":  "<RFC 3339>",
+  "end_time":    "<RFC 3339>",
+  "status":      { "code": "OK" },
+  "attributes":  {
+    "gen_ai.system": "openai",
+    "openinference.span.kind": "LLM",
+    "agentminds.site_id": "site_a1b2"
+  },
+  "events":      [ /* per-span events */ ],
+  "_meta":       { /* vendor extensions */ }
+}
+```
+
+Backwards-compat: v1.0 `Telemetry.spans[]` accepted free-form
+`{type:object}`. v1.1.1 `TelemetrySpan` shape is OPTIONAL — every
+field is OPTIONAL except for the implicit collector contract that
+unknown fields are ignored. v1.0 spans pass v1.1.1 validation.
+
 ---
 
 ## 6. `project_info` — Self-description
@@ -508,31 +591,52 @@ site already runs.
 }
 ```
 
-### 6.1 `SkillManifest` (Anthropic Claude Skills + OASF aligned)
+### 6.1 `SkillManifest` (agentskills.io + Anthropic Skills aligned)
 
 A single skill is described by parsing its `SKILL.md` file's YAML
 frontmatter and the file body. The on-disk format is
-[Claude Skills](https://github.com/anthropics/skills); the wire format
-in ARP is:
+[Claude Skills](https://github.com/anthropics/skills); ARP §6.1
+adopts the [agentskills.io open spec](https://agentskills.io)
+frontmatter fields verbatim:
 
 ```jsonc
 {
-  "name":         "<string, required>",
-  "description":  "<string, required>",
-  "version":      "<semver, optional>",
-  "license":      "<SPDX id, optional>",
-  "allowed_tools": ["Read", "Edit", ...],    // Claude Skills field
-  "triggers":     ["...", "..."],            // ARP extension
+  "name":           "<string, REQUIRED>",
+  "description":    "<string, REQUIRED>",
+  "version":        "<semver>",
+  "license":        "<SPDX id, e.g. MIT, Apache-2.0, CC-BY-4.0>",
+  "allowed_tools":  ["Read", "Edit", ...],
+  "auto_invocable": false,                  // v1.1.1, default false (opt-in)
+  "metadata":       { "<key>": "<value>" }, // agentskills.io free-form
+  "triggers":       ["...", "..."],         // ARP extension
   "compatibility": {
     "agent_runtimes": ["claude-code>=1.0", "agentminds-cli>=0.1"]
-  }
+  },
+  "_meta":          { "<reverse-DNS>": ... }
 }
 ```
 
-Only `name` and `description` are required, matching Anthropic's
+#### v1.1.1 polarity flip — `auto_invocable`
+
+Anthropic Skills' `disable-model-invocation: true` becomes ARP's
+`auto_invocable: false` (default). Reasons:
+
+- **Safer default.** Opt-in to LLM auto-loading is more conservative
+  than opt-out.
+- **Sentence reads cleaner.** "Is this skill auto-invocable?" → bool.
+  "Is model invocation disabled?" → double negative.
+- **Forwards-compat.** When the LLM-invocation surface grows (chains,
+  guardrails, etc.), positive flags are easier to extend than
+  inverted ones.
+
+Senders MAY continue to read upstream `disable-model-invocation`
+from raw `SKILL.md` files; collectors translate to the polarity-
+flipped form on ingest.
+
+Only `name` and `description` are REQUIRED, matching Anthropic's
 SKILL.md spec. AgentMinds publishes its own skills (`agentminds-status`,
-`agentminds-agents`, `agentminds-pool`, `agentminds-connect`) in this
-format.
+`agentminds-agents`, `agentminds-pool`, `agentminds-connect`,
+`agentminds-push-report`) in this format.
 
 ---
 

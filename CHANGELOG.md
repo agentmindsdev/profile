@@ -6,6 +6,68 @@ documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this profile adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] — 2026-04-27
+
+Phase 1B of the v1.1 deepdive plan. Adds the remaining 3 must-ship
+items: Breadcrumbs, agentskills.io frontmatter alignment,
+OpenInference normative reference. All additive, all backwards-compat
+with v1.0 and v1.1.0.
+
+### Added
+
+- **§3.6 `Breadcrumb` trail array on Warning.** Sentry-aligned
+  timestamped events leading up to a warning. Required: `timestamp`
+  + `type` (8-value enum: navigation/http/error/info/query/ui/user/
+  default). Critical for cascade-failure debugging. Cap ~50/warning.
+- **§5.1 OpenInference v1 normative reference.** ARP §5 telemetry
+  now formally adopts OpenInference's attribute namespace by
+  reference. Spec text only (Apache-2.0); Phoenix runtime explicitly
+  excluded (ELv2 + US patent claims).
+- **§5.2 `TelemetrySpan` typed shape.** OPTIONAL upgrade from v1.0
+  free-form span dicts. New optional fields: `kind` (10-value
+  OpenInference enum), `subtype` (8-value OpenAI Agents enum),
+  `trace_id`, `span_id`, `parent_span_id`, `start_time`, `end_time`,
+  `status`, `attributes`, `events`, `_meta`. v1.0 free-form spans
+  still validate.
+- **§6.1 SkillManifest expansion.** agentskills.io 6 open-spec
+  frontmatter fields adopted verbatim: `name`, `description`,
+  `version`, `license` (SPDX), `metadata` (free-form), `compatibility`.
+  Plus `auto_invocable: bool` — polarity-flipped from Anthropic
+  Skills' `disable-model-invocation`. Default `false` (opt-in is
+  safer; collectors translate inverted upstream form on ingest).
+
+### Schema
+
+- New `$defs`:
+  - `Breadcrumb` (required: timestamp, type)
+  - `OpenInferenceSpanKind` (10-value enum)
+  - `OpenAISpanSubtype` (8-value enum)
+  - `TelemetrySpan` (typed shape, all fields optional)
+- `Warning.breadcrumbs[]` references `Breadcrumb`
+- `Telemetry.spans[]` now references `TelemetrySpan` (was free-form
+  `{type:object}` — additive: TelemetrySpan also accepts
+  additionalProperties)
+- `SkillManifest.metadata` (object) and `SkillManifest.auto_invocable`
+  (boolean) added
+
+### Tests
+
+- 18 new schema validator cases — total: 44 → 62 schema tests
+- Coverage: breadcrumb attach + reject paths, agentskills.io fields
+  acceptance + auto_invocable boolean enforcement, TelemetrySpan
+  typed validation incl. enum-rejection paths and v1.0 free-form
+  backwards-compat
+
+### What this unlocks
+
+- **Sentry SDK adapter:** ARP collectors can now translate Sentry
+  breadcrumb arrays directly without lossy normalization
+- **OpenInference adopters** (Arize, Langfuse, anyone using the
+  attribute namespace): direct interop, no field renames
+- **Anthropic / agentskills.io ecosystem**: skill metadata round-trips
+  without lossy translation; the polarity flip on `auto_invocable`
+  is a small clarity win
+
 ## [1.1.0] — 2026-04-27
 
 Additive backwards-compat release. v1.0 senders work unchanged

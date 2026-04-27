@@ -151,6 +151,21 @@
       }
     },
 
+    "Breadcrumb": {
+      "description": "ARP §3.6 (v1.1.1): timestamped event leading up to a Warning. Sentry-aligned. Critical for understanding cascade failures.",
+      "type": "object",
+      "required": ["timestamp", "type"],
+      "additionalProperties": true,
+      "properties": {
+        "timestamp": { "$ref": "#/$defs/Timestamp" },
+        "type":      { "type": "string", "enum": ["navigation", "http", "error", "info", "query", "ui", "user", "default"] },
+        "category":  { "type": "string", "description": "Free-form category, e.g. 'console', 'fetch', 'agent.call'." },
+        "message":   { "type": "string", "description": "Human-readable description of the event." },
+        "level":     { "$ref": "#/$defs/Severity" },
+        "data":      { "type": "object", "additionalProperties": true, "description": "Free-form structured data attached to the breadcrumb." }
+      }
+    },
+
     "Report": {
       "type": "object",
       "required": ["summary"],
@@ -193,6 +208,11 @@
         "category":    { "$ref": "#/$defs/Category" },
         "tags":        { "type": "object", "additionalProperties": { "type": "string" } },
         "evidence":    { "type": "object", "additionalProperties": true },
+        "breadcrumbs": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Breadcrumb" },
+          "description": "ARP §3.6 (v1.1.1): timestamped events leading up to this warning. Empty/omitted = no trail. Cap at ~50 items to avoid payload bloat."
+        },
         "_meta":       { "type": "object", "additionalProperties": true }
       }
     },
@@ -265,12 +285,45 @@
     },
 
     "Telemetry": {
+      "description": "ARP §5 Telemetry. Normative references (v1.1.1): OpenTelemetry GenAI semconv (gen_ai.* attribute namespace) and OpenInference v1 spec (openinference.span.kind classification, llm.* prompt/response attributes, retrieval/embedding/agent/tool conventions). Senders SHOULD use upstream attribute names verbatim; ARP-specific extensions go under the agentminds.* namespace per §2.1.",
       "type": "object",
       "additionalProperties": true,
       "properties": {
-        "spans":   { "type": "array", "items": { "type": "object" } },
+        "spans":   { "type": "array", "items": { "$ref": "#/$defs/TelemetrySpan" } },
         "events":  { "type": "array", "items": { "type": "object" } },
         "metrics": { "type": "array", "items": { "$ref": "#/$defs/OtelMetric" } }
+      }
+    },
+
+    "OpenInferenceSpanKind": {
+      "type": "string",
+      "enum": ["LLM", "CHAIN", "TOOL", "RETRIEVER", "EMBEDDING", "AGENT", "GUARDRAIL", "EVALUATOR", "RERANKER", "UNKNOWN"],
+      "description": "OpenInference v1 canonical span kind taxonomy (10 values). Source: https://github.com/Arize-ai/openinference/blob/main/spec/semantic_conventions.md (Apache-2.0 spec text only; the Phoenix implementation is ELv2 and is NOT a dependency)."
+    },
+
+    "OpenAISpanSubtype": {
+      "type": "string",
+      "enum": ["agent_span", "generation_span", "function_span", "guardrail_span", "handoff_span", "transcription_span", "speech_span", "custom_span"],
+      "description": "OpenAI Agents SDK 8-value span subtype enum. Adopted verbatim for cross-vendor span classification."
+    },
+
+    "TelemetrySpan": {
+      "description": "ARP §5.1 (v1.1.1): typed telemetry span. Backwards-compat with v1.0 free-form `{type:object}` spans — all fields below are OPTIONAL.",
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "name":       { "type": "string" },
+        "kind":       { "$ref": "#/$defs/OpenInferenceSpanKind" },
+        "subtype":    { "$ref": "#/$defs/OpenAISpanSubtype" },
+        "trace_id":   { "type": "string" },
+        "span_id":    { "type": "string" },
+        "parent_span_id": { "type": "string" },
+        "start_time": { "$ref": "#/$defs/Timestamp" },
+        "end_time":   { "$ref": "#/$defs/Timestamp" },
+        "status":     { "type": "object", "additionalProperties": true },
+        "attributes": { "type": "object", "additionalProperties": true, "description": "OTel + OpenInference attribute bag. Recommended namespaces: gen_ai.*, openinference.*, agentminds.*." },
+        "events":     { "type": "array", "items": { "type": "object" } },
+        "_meta":      { "type": "object", "additionalProperties": true }
       }
     },
 
@@ -321,6 +374,7 @@
     },
 
     "SkillManifest": {
+      "description": "ARP §6.1 SkillManifest — aligned with the agentskills.io open spec frontmatter (name, description, version, license, allowed_tools, compatibility, metadata). v1.1.1 adds the polarity-flipped auto_invocable flag (replacing Anthropic Skills' disable-model-invocation) so the default is the safer 'opt-in to auto-invocation'.",
       "type": "object",
       "required": ["name", "description"],
       "additionalProperties": true,
@@ -328,10 +382,20 @@
         "name":         { "type": "string", "minLength": 1 },
         "description":  { "type": "string", "minLength": 1 },
         "version":      { "type": "string" },
-        "license":      { "type": "string" },
+        "license":      { "type": "string", "description": "SPDX license identifier (e.g. 'MIT', 'Apache-2.0', 'CC-BY-4.0'). Aligned with agentskills.io." },
         "allowed_tools": {
           "type": "array",
           "items": { "type": "string" }
+        },
+        "auto_invocable": {
+          "type": "boolean",
+          "default": false,
+          "description": "ARP §6.1 (v1.1.1): polarity-flipped from Anthropic Skills' `disable-model-invocation`. True = the LLM may load this skill without explicit user mention. Default false (opt-in) — safer."
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "agentskills.io open frontmatter `metadata` field — free-form key/value bag for skill-specific config (e.g. tags, owner, dashboard URLs)."
         },
         "triggers": {
           "type": "array",
