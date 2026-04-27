@@ -1,11 +1,21 @@
 # AgentMinds Reporting Profile (ARP)
 
-**Version:** 1.1.1
+**Version:** 1.2.0
 **Status:** Internal profile — open for public comment
 **Maintainer:** AgentMinds (`api.agentminds.dev`)
 **License:** CC-BY-4.0
 
-> **What's new in 1.1.1** (2026-04-27, additive over 1.1.0):
+> **What's new in 1.2.0** (2026-04-27, additive over 1.1.1) — Phase 2 of the deepdive plan:
+>
+> - **§2.2 `lifecycle_event` envelope** — `cold_start` / `wake` / `scheduled` / `shutdown` / `running` for hibernate-aware runtimes (Cloudflare DO, Lambda)
+> - **§3.7 `Exception` evidence** — `mechanism.handled` distinguishes caught vs uncaught (Sentry parity)
+> - **§5.3 `dotted_order` on `TelemetrySpan`** — LangSmith-compatible single-string hierarchical sort key
+> - **§6.2 `Handoff` primitive + `Report.handoffs[]`** — multi-agent delegation events (OpenAI Agents SDK lineage)
+> - **§6.3 `PromptManifest` primitive + `ProjectInfo.prompts[]`** — prompt provenance (LangSmith Prompt Hub + OpenInference `prompt.*` lineage)
+> - **§6.1 SkillManifest expansion:** `oasf_skill_ids[]` (LF AI & Data taxonomy refs), `agentskills_io_canonical_name`, `execution_tier` (Cloudflare 5-tier ladder + ARP `in_process`)
+> - **§6.4 `tech_stack.mcp_server_exposed` + `mcp_clients_consumed[]`** — MCP role disambiguation
+>
+> **What was new in 1.1.1** (2026-04-27, additive over 1.1.0):
 >
 > - **§3.6 Breadcrumb-trail array on Warning** — Sentry-aligned, debug observability for cascade failures
 > - **§5 normative reference: OpenInference v1** — adopt the upstream spec's attribute namespace (`openinference.span.kind`, `llm.*`, `retrieval.*`, `tool.*`); spec text only, Phoenix implementation excluded (ELv2 license guardrail per the deep-dive REJECT list)

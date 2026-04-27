@@ -6,6 +6,64 @@ documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this profile adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] — 2026-04-27
+
+Phase 2 of the v1.1 deepdive plan. 11 additive primitives covering
+multi-agent observability, prompt provenance, hibernation lifecycle,
+exception triage, hierarchical telemetry, and AGNTCY OASF skill
+taxonomy alignment. All backwards-compat — v1.0/v1.1.x senders work
+unchanged against v1.2 collectors.
+
+### Added
+
+- **§2.2 `lifecycle_event` envelope** — `cold_start | wake | scheduled
+  | shutdown | running` for hibernate-aware runtimes (Cloudflare DO,
+  AWS Lambda). OPTIONAL — non-hibernating agents omit.
+- **§3.7 `Exception` evidence shape** — Sentry-aligned, `mechanism.handled`
+  distinguishes caught vs uncaught. Goes inside `Warning.evidence.exception`.
+- **§5.3 `dotted_order` on `TelemetrySpan`** — LangSmith-compatible
+  single-string hierarchical sort (`<RFC3339>Z<uuid>.<RFC3339>Z<uuid>...`).
+  Lets clients sort spans without parent_id JOINs.
+- **§6.2 `Handoff` primitive + `Report.handoffs[]`** — multi-agent
+  delegation events. Lineage: OpenAI Agents SDK Handoff class.
+  Required: from_agent + to_agent. Adds `Report.handoffs[]` array.
+- **§6.3 `PromptManifest` primitive + `ProjectInfo.prompts[]`** — prompt
+  provenance (LangSmith Prompt Hub + OpenInference `prompt.*` lineage).
+- **§6.1 `oasf_skill_ids[]`** — cross-reference to AGNTCY OASF skill
+  taxonomy IDs (e.g. `[1106]` for "Cross-Site Pattern Confidence" under
+  Category 11). LF AI & Data alignment.
+- **§6.1 `agentskills_io_canonical_name`** — optional cross-link to
+  agentskills.io marketplace.
+- **§6.1 `execution_tier`** — Cloudflare Agents 5-tier execution ladder
+  + ARP `in_process` extension (`workspace`, `dynamic_worker`, `npm`,
+  `browser`, `sandbox`, `in_process`).
+- **§6.4 `tech_stack.mcp_server_exposed` + `mcp_clients_consumed[]`** —
+  MCP role disambiguation. Closes the "is this site exposing or consuming
+  MCP?" gap.
+
+### Schema
+
+- New `$defs`:
+  - `Handoff` (required: from_agent, to_agent)
+  - `PromptManifest` (free-form provenance)
+  - `Exception` (mechanism.handled boolean for triage)
+- `lifecycle_event` top-level enum property (5 values + OPTIONAL)
+- `TelemetrySpan.dotted_order` string field
+- `Report.handoffs[]` array
+- `ProjectInfo.prompts[]` array
+- `ProjectInfo.tech_stack` typed properties (`mcp_server_exposed`,
+  `mcp_clients_consumed`)
+- `SkillManifest`: `oasf_skill_ids` (int array), `agentskills_io_canonical_name`,
+  `execution_tier` (6-value enum)
+
+### Tests
+
+- 19 new schema validator cases — total: 62 → 81 schema tests
+- Coverage: enum-validation paths for lifecycle_event, execution_tier;
+  Handoff required-field enforcement; oasf_skill_ids type validation;
+  Exception evidence shape; dotted_order on spans; v1.0/1.1.x backwards-
+  compat round-trips on all new optional fields.
+
 ## [1.1.1] — 2026-04-27
 
 Phase 1B of the v1.1 deepdive plan. Adds the remaining 3 must-ship

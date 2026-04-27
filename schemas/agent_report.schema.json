@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://docs.agentminds.dev/schemas/agent_report.schema.json",
-  "title": "AgentMinds Reporting Profile (ARP) v1.1",
+  "title": "AgentMinds Reporting Profile (ARP) v1.2",
   "description": "Wire format for agent reports, warnings, learned patterns, recommendations and skill manifests. See docs/AGENT_REPORTING_PROFILE.md. ARP is a profile built on Sentry + OTel GenAI + MCP + Claude Skills + AGNTCY OASF; it is NOT a competing standard.",
   "type": "object",
   "required": ["agent", "report"],
@@ -53,6 +53,11 @@
       "type": "object",
       "additionalProperties": true,
       "description": "ARP §2.1 (v1.1): vendor extension envelope using reverse-DNS namespacing (e.g. com.agentminds.*, io.agentminds.*). MCP-aligned. Open by design; collectors MUST ignore unknown keys. Reserved second-label namespaces: agentminds.*, arp.*."
+    },
+    "lifecycle_event": {
+      "type": "string",
+      "enum": ["cold_start", "wake", "scheduled", "shutdown", "running"],
+      "description": "ARP §2.2 (v1.2): OPTIONAL signal for hibernate-aware runtimes (Cloudflare Agents Durable Object, AWS Lambda cold start, etc.). Affects warning interpretation — fresh wake-up warnings carry less weight than steady-state ones. MUST NOT be required for non-hibernating agents."
     },
     "report":       { "$ref": "#/$defs/Report" },
     "memory":       { "$ref": "#/$defs/Memory" },
@@ -151,6 +156,26 @@
       }
     },
 
+    "Exception": {
+      "description": "ARP §3.7 (v1.2): structured exception payload. Sentry-aligned. Goes inside Warning.evidence.exception when an agent reports a thrown/caught error. Distinguishes handled vs uncaught for triage.",
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "type":   { "type": "string", "description": "Exception class name, e.g. 'ValueError', 'TimeoutError'." },
+        "value":  { "type": "string", "description": "Stringified exception message." },
+        "module": { "type": "string", "description": "Importable module path." },
+        "stacktrace": { "type": "object", "additionalProperties": true },
+        "mechanism": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "handled": { "type": "boolean", "description": "True = caught by agent's try/except. False = uncaught (reached the top of the stack)." },
+            "type":    { "type": "string", "description": "How the exception entered the report: 'exception_handler' / 'signal' / 'unhandled' / etc." }
+          }
+        }
+      }
+    },
+
     "Breadcrumb": {
       "description": "ARP §3.6 (v1.1.1): timestamped event leading up to a Warning. Sentry-aligned. Critical for understanding cascade failures.",
       "type": "object",
@@ -188,7 +213,44 @@
           "items": { "$ref": "#/$defs/Score" },
           "description": "ARP §3.5 (v1.1): evaluation scores attached to this report. Use Score for typed eval outcomes; the legacy `report.score` 0-100 health number is for one-off summaries only."
         },
+        "handoffs": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Handoff" },
+          "description": "ARP §6.2 (v1.2): multi-agent delegation events that occurred during this report. OpenAI Agents SDK Handoff lineage."
+        },
         "_meta":    { "type": "object", "additionalProperties": true }
+      }
+    },
+
+    "Handoff": {
+      "description": "ARP §6.2 (v1.2): one multi-agent delegation event. Lineage: OpenAI Agents SDK `Handoff` class.",
+      "type": "object",
+      "required": ["from_agent", "to_agent"],
+      "additionalProperties": true,
+      "properties": {
+        "from_agent":           { "type": "string", "minLength": 1 },
+        "to_agent":             { "type": "string", "minLength": 1 },
+        "trigger":              { "type": "string", "description": "Human-readable reason for the handoff." },
+        "tool_name_override":   { "type": "string" },
+        "input_filter":         { "type": "string", "description": "Optional regex/spec describing how the input is filtered before delegation." },
+        "nest_handoff_history": { "type": "boolean" },
+        "occurred_at":          { "$ref": "#/$defs/Timestamp" },
+        "_meta":                { "type": "object", "additionalProperties": true }
+      }
+    },
+
+    "PromptManifest": {
+      "description": "ARP §6.3 (v1.2): prompt provenance. Lineage: OpenInference prompt.* attributes + LangSmith Prompt Hub.",
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "vendor":    { "type": "string", "description": "e.g. 'langsmith', 'openai', 'self', 'anthropic-prompts'" },
+        "id":        { "type": "string" },
+        "version":   { "type": "string" },
+        "url":       { "type": "string", "format": "uri" },
+        "template":  { "type": "string", "description": "Inline template body. Senders SHOULD provide either url OR template." },
+        "variables": { "type": "object", "additionalProperties": { "type": "string" } },
+        "_meta":     { "type": "object", "additionalProperties": true }
       }
     },
 
@@ -318,6 +380,10 @@
         "trace_id":   { "type": "string" },
         "span_id":    { "type": "string" },
         "parent_span_id": { "type": "string" },
+        "dotted_order": {
+          "type": "string",
+          "description": "ARP §5.3 (v1.2): LangSmith-compatible single-string hierarchical sort key (`<RFC3339>Z<uuid>.<RFC3339>Z<uuid>...`). Lets clients sort spans without a parent_id JOIN. OPTIONAL."
+        },
         "start_time": { "$ref": "#/$defs/Timestamp" },
         "end_time":   { "$ref": "#/$defs/Timestamp" },
         "status":     { "type": "object", "additionalProperties": true },
@@ -356,8 +422,24 @@
       "additionalProperties": true,
       "properties": {
         "skills":     { "type": "array", "items": { "$ref": "#/$defs/SkillManifest" } },
+        "prompts":    {
+          "type": "array",
+          "items": { "$ref": "#/$defs/PromptManifest" },
+          "description": "ARP §6.3 (v1.2): prompts in use by this project. Lets recommendation engines avoid telling you to add a prompt registry you already have."
+        },
         "functions":  { "type": "array", "items": { "type": "object" } },
-        "tech_stack": { "type": "object", "additionalProperties": true },
+        "tech_stack": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "ARP §6 tech stack. v1.2 adds MCP role disambiguation: `mcp_server_exposed` (bool — does this site expose tools?), `mcp_clients_consumed` (array of upstream MCP servers it consumes).",
+          "properties": {
+            "mcp_server_exposed":   { "type": "boolean" },
+            "mcp_clients_consumed": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          }
+        },
         "api_routes": {
           "type": "array",
           "items": {
@@ -396,6 +478,20 @@
           "type": "object",
           "additionalProperties": true,
           "description": "agentskills.io open frontmatter `metadata` field — free-form key/value bag for skill-specific config (e.g. tags, owner, dashboard URLs)."
+        },
+        "oasf_skill_ids": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 0 },
+          "description": "ARP §6.1 (v1.2): cross-reference to AGNTCY OASF skill taxonomy IDs (e.g. 1106 for 'Cross-Site Pattern Confidence' under Category 11). Stable numeric refs let LF AI & Data tooling discover this skill via standard taxonomy."
+        },
+        "agentskills_io_canonical_name": {
+          "type": "string",
+          "description": "ARP §6.1 (v1.2): optional cross-link to canonical name on agentskills.io marketplace."
+        },
+        "execution_tier": {
+          "type": "string",
+          "enum": ["workspace", "dynamic_worker", "npm", "browser", "sandbox", "in_process"],
+          "description": "ARP §6.1 (v1.2): how this skill executes. Cloudflare Agents 5-tier ladder + ARP `in_process` extension. OPTIONAL."
         },
         "triggers": {
           "type": "array",

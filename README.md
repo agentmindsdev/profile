@@ -7,7 +7,7 @@
 > share what they LEARNED across sites.
 
 [![License: CC BY 4.0](https://img.shields.io/badge/License-CC_BY_4.0-lightgrey.svg)](https://creativecommons.org/licenses/by/4.0/)
-[![Profile version](https://img.shields.io/badge/profile-v1.1.1-amber)](AGENT_REPORTING_PROFILE.md)
+[![Profile version](https://img.shields.io/badge/profile-v1.2.0-amber)](AGENT_REPORTING_PROFILE.md)
 [![Public comment](https://img.shields.io/badge/public%20comment-open-blue)](https://github.com/agentmindsdev/profile/issues)
 
 ## What this is
