@@ -1,0 +1,289 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://docs.agentminds.dev/schemas/agent_report.schema.json",
+  "title": "AgentMinds Reporting Profile (ARP) v1.0",
+  "description": "Wire format for agent reports, warnings, learned patterns, recommendations and skill manifests. See docs/AGENT_REPORTING_PROFILE.md. ARP is a profile built on Sentry + OTel GenAI + MCP + Claude Skills + AGNTCY OASF; it is NOT a competing standard.",
+  "type": "object",
+  "required": ["agent", "report"],
+  "additionalProperties": true,
+
+  "properties": {
+    "arp_version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+(\\.[0-9]+)?$",
+      "description": "Semver of the ARP profile the sender targets. Defaults to latest minor of same major."
+    },
+    "ars_version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+(\\.[0-9]+)?$",
+      "description": "Legacy alias for arp_version (pre-rename). Accepted for backwards compatibility; prefer arp_version on new payloads."
+    },
+    "agent": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "pattern": "^[a-z][a-z0-9_-]*$",
+      "description": "Stable agent name. Lowercase, snake/kebab case."
+    },
+    "site_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "description": "Stable site identifier. May be set by the transport layer if absent in body."
+    },
+    "report":       { "$ref": "#/$defs/Report" },
+    "memory":       { "$ref": "#/$defs/Memory" },
+    "telemetry":    { "$ref": "#/$defs/Telemetry" },
+    "project_info": { "$ref": "#/$defs/ProjectInfo" },
+    "schema": {
+      "type": "object",
+      "properties": {
+        "name":    { "type": "string" },
+        "version": { "type": "string" }
+      }
+    }
+  },
+
+  "$defs": {
+    "Severity": {
+      "type": "string",
+      "enum": ["fatal", "error", "warning", "info", "debug"]
+    },
+    "WarningSeverity": {
+      "type": "string",
+      "enum": ["critical", "high", "medium", "low", "info"]
+    },
+    "WarningStatus": {
+      "type": "string",
+      "enum": ["unresolved", "resolved", "ignored", "muted"],
+      "default": "unresolved"
+    },
+    "PatternStatus": {
+      "type": "string",
+      "enum": ["active", "solved", "obsolete"],
+      "default": "active"
+    },
+    "RecommendationStatus": {
+      "type": "string",
+      "enum": ["open", "applied", "dismissed"],
+      "default": "open"
+    },
+    "Priority": {
+      "type": "string",
+      "enum": ["critical", "high", "medium", "low"]
+    },
+    "Effort": {
+      "type": "string",
+      "enum": ["trivial", "small", "medium", "large"]
+    },
+    "Impact": {
+      "type": "string",
+      "enum": ["critical", "high", "medium", "low"]
+    },
+    "Category": {
+      "type": "string",
+      "enum": [
+        "performance", "security", "content", "seo",
+        "quality", "compliance", "infra", "general"
+      ]
+    },
+    "Fingerprint": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "Lowercase hex SHA-256 (64 chars)."
+    },
+    "Timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "RFC 3339 UTC timestamp."
+    },
+
+    "Report": {
+      "type": "object",
+      "required": ["summary"],
+      "additionalProperties": true,
+      "properties": {
+        "severity": { "$ref": "#/$defs/Severity" },
+        "summary":  { "type": "string", "minLength": 1 },
+        "score":    { "type": "number", "minimum": 0, "maximum": 100 },
+        "metrics":  { "type": "object", "additionalProperties": true },
+        "warnings": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Warning" }
+        },
+        "recommendations": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Recommendation" }
+        }
+      }
+    },
+
+    "Warning": {
+      "type": "object",
+      "required": ["message"],
+      "additionalProperties": true,
+      "properties": {
+        "fingerprint": { "$ref": "#/$defs/Fingerprint" },
+        "message":     { "type": "string", "minLength": 1 },
+        "level":       { "$ref": "#/$defs/Severity" },
+        "severity":    { "$ref": "#/$defs/WarningSeverity" },
+        "status":      { "$ref": "#/$defs/WarningStatus" },
+        "first_seen":  { "$ref": "#/$defs/Timestamp" },
+        "last_seen":   { "$ref": "#/$defs/Timestamp" },
+        "count":       { "type": "integer", "minimum": 1 },
+        "category":    { "$ref": "#/$defs/Category" },
+        "tags":        { "type": "object", "additionalProperties": { "type": "string" } },
+        "evidence":    { "type": "object", "additionalProperties": true }
+      }
+    },
+
+    "Recommendation": {
+      "type": "object",
+      "required": ["title"],
+      "additionalProperties": true,
+      "properties": {
+        "fingerprint":  { "$ref": "#/$defs/Fingerprint" },
+        "title":        { "type": "string", "minLength": 1 },
+        "details":      { "type": "string" },
+        "priority":     { "$ref": "#/$defs/Priority" },
+        "category":     { "$ref": "#/$defs/Category" },
+        "warning_fingerprints": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Fingerprint" }
+        },
+        "effort":       { "$ref": "#/$defs/Effort" },
+        "confidence":   { "type": "number", "minimum": 0, "maximum": 1 },
+        "code_snippet": { "type": "string" },
+        "source_rule":  { "type": "string" },
+        "status":       { "$ref": "#/$defs/RecommendationStatus" }
+      }
+    },
+
+    "Memory": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "learned_patterns": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Pattern" }
+        },
+        "recurring_issues": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Warning" }
+        },
+        "total_runs":     { "type": "integer", "minimum": 0 },
+        "schema_version": { "type": "string" }
+      }
+    },
+
+    "Pattern": {
+      "type": "object",
+      "required": ["pattern"],
+      "additionalProperties": true,
+      "properties": {
+        "fingerprint":            { "$ref": "#/$defs/Fingerprint" },
+        "pattern":                { "type": "string", "minLength": 1 },
+        "category":               { "$ref": "#/$defs/Category" },
+        "detail":                 { "type": "string" },
+        "action":                 { "type": "string" },
+        "confidence":             { "type": "number", "minimum": 0, "maximum": 1 },
+        "impact":                 { "$ref": "#/$defs/Impact" },
+        "status":                 { "$ref": "#/$defs/PatternStatus" },
+        "first_seen":             { "$ref": "#/$defs/Timestamp" },
+        "last_seen":              { "$ref": "#/$defs/Timestamp" },
+        "first_seen_run":         { "type": "integer", "minimum": 0 },
+        "last_confirmed_run":     { "type": "integer", "minimum": 0 },
+        "supporting_evidence_count": { "type": "integer", "minimum": 0 },
+        "applicable_site_types":  {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+
+    "Telemetry": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "spans":   { "type": "array", "items": { "type": "object" } },
+        "events":  { "type": "array", "items": { "type": "object" } },
+        "metrics": { "type": "array", "items": { "$ref": "#/$defs/OtelMetric" } }
+      }
+    },
+
+    "OtelMetric": {
+      "type": "object",
+      "required": ["name", "type"],
+      "additionalProperties": true,
+      "properties": {
+        "name":        { "type": "string" },
+        "type":        { "type": "string", "enum": ["counter", "gauge", "histogram"] },
+        "unit":        { "type": "string", "description": "UCUM where applicable." },
+        "url":         { "type": "string", "format": "uri" },
+        "data_points": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+              "value":      { "type": ["number", "integer"] },
+              "timestamp":  { "$ref": "#/$defs/Timestamp" },
+              "attributes": { "type": "object", "additionalProperties": true }
+            }
+          }
+        }
+      }
+    },
+
+    "ProjectInfo": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "skills":     { "type": "array", "items": { "$ref": "#/$defs/SkillManifest" } },
+        "functions":  { "type": "array", "items": { "type": "object" } },
+        "tech_stack": { "type": "object", "additionalProperties": true },
+        "api_routes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "method":      { "type": "string" },
+              "path":        { "type": "string" },
+              "description": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+
+    "SkillManifest": {
+      "type": "object",
+      "required": ["name", "description"],
+      "additionalProperties": true,
+      "properties": {
+        "name":         { "type": "string", "minLength": 1 },
+        "description":  { "type": "string", "minLength": 1 },
+        "version":      { "type": "string" },
+        "license":      { "type": "string" },
+        "allowed_tools": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "triggers": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "compatibility": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "agent_runtimes": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          }
+        }
+      }
+    }
+  }
+}
