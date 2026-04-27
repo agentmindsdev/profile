@@ -1,9 +1,19 @@
 # AgentMinds Reporting Profile (ARP)
 
-**Version:** 1.0.0
+**Version:** 1.1.0
 **Status:** Internal profile — open for public comment
 **Maintainer:** AgentMinds (`api.agentminds.dev`)
 **License:** CC-BY-4.0
+
+> **What's new in 1.1.0** (2026-04-27): additive backwards-compat
+> spec extension driven by [`docs/research/standards_deepdive_2026_04_27/ULTIMATE_PROFILE_RECOMMENDATION.md`](research/standards_deepdive_2026_04_27/ULTIMATE_PROFILE_RECOMMENDATION.md):
+>
+> - **§3.5 Score primitive** — typed evaluation outcomes (numeric / categorical / boolean) for LangSmith / Langfuse / OpenInference interop
+> - **§2.1 `_meta` reverse-DNS extension envelope** — MCP-style vendor extensions, present on every object
+> - **§3.3 Fingerprint union** — `string` (canonical) OR `string[]` (Sentry-aligned, with `{{ default }}` placeholder support); v1.0 senders unaffected
+> - **§2 envelope additions:** `session_id`, `user_id`, `conversation_id` for multi-turn agent flow correlation (LangSmith Threads / OTel `gen_ai.conversation.id` aliases)
+>
+> All v1.0 senders continue to validate against the v1.1 schema unchanged. v1.1 senders gain the new fields without breaking v1.0 collectors (collectors MUST ignore unknown fields per §7).
 
 ---
 
@@ -34,6 +44,36 @@ If you are reading this and wondering "should my product follow ARP
 or follow standard X?" — the honest answer is **follow standard X**.
 ARP is a thin convenience layer on top of those standards, optimized
 for AgentMinds' delivery surface. Adopt the lineage, not the profile.
+
+### How ARP positions AgentMinds across five layers
+
+The five lineage standards are not competitors — they are **stacked
+layers** under the Linux Foundation AI & Data umbrella (early 2026):
+
+```
+SLIM (transport, gRPC over H2/3, MLS+PQ)
+   ↓
+A2A / ACP (peer-to-peer agent delegation; ACP merged into A2A in Aug 2025)
+   ↓
+MCP (agent → tool, JSON-RPC 2.0)
+   ↓
+OASF (agent identity + capability schema)
+   ↓
+OTel GenAI (telemetry semantic conventions)
+   +
+Sentry-style fingerprint + issue lifecycle (cross-site dedup)
+```
+
+ARP enables AgentMinds to be **simultaneously**:
+
+1. An **OASF record** — capability schema declaring what AgentMinds is
+2. An **A2A agent** — cross-org REST endpoint at `/.well-known/agent-card.json`
+3. An **MCP server** — LLM-callable tools (`agentminds_push`, `agentminds_query_pattern`)
+4. **OpenInference-instrumented** — Langfuse/Arize auto-trace
+5. **Sentry-pattern compatible** — fingerprint + lifecycle aggregation
+
+No other platform ships all five layers in one product. ARP is the
+contract that lets AgentMinds present consistently across them.
 
 ---
 
@@ -86,27 +126,64 @@ single JSON object with this top-level shape:
 
 ```jsonc
 {
-  "arp_version": "1.0",                      // optional but recommended
+  "arp_version": "1.1",                      // optional but recommended
   "agent": "<string>",                       // required
   "site_id": "<string>",                     // required (set by transport if omitted)
+  "session_id":      "<string>",             // optional, v1.1 — multi-turn flow
+  "user_id":         "<string>",             // optional, v1.1 — opaque user id
+  "conversation_id": "<string>",             // optional, v1.1 — OTel gen_ai.conversation.id alias
   "report": { ... },                         // required — see §3
   "memory": { ... },                         // optional — see §4
   "telemetry": { ... },                      // optional — see §5
   "project_info": { ... },                   // optional — see §6
   "schema": {                                // optional — see §7
     "name": "agentminds.arp",
-    "version": "1.0"
-  }
+    "version": "1.1"
+  },
+  "_meta": { ... }                           // optional, v1.1 — see §2.1
 }
 ```
 
 For backwards compatibility, collectors MUST also accept the legacy
 key `ars_version` as an alias for `arp_version` and `agentminds.ars`
-as the schema name; both decay to the same v1.0 envelope.
+as the schema name; both decay to the same envelope.
 
 The transport (HTTP POST `/sync/ingest`, MCP tool call, etc.) MAY add
 `api_key`, `received_at`, and `correlation_id` siblings; these are not
 part of ARP itself.
+
+### 2.1 `_meta` extension envelope (v1.1)
+
+Every ARP object MAY carry a `_meta` field — an open object intended
+for vendor-specific extensions that should not pollute the canonical
+schema. Keys MUST follow reverse-DNS namespacing per the MCP
+convention:
+
+```jsonc
+{
+  "_meta": {
+    "com.agentminds.deploy_id": "abc123",
+    "io.agentminds.replay_count": 3,
+    "com.othervendor.tag": "experiment-1"
+  }
+}
+```
+
+**Rules:**
+- Reserved second-level namespaces: `agentminds.*`, `arp.*`. These
+  are managed by AgentMinds; other implementers MUST NOT collide.
+- All other namespaces are first-come-first-served by reverse-DNS.
+- Collectors MUST ignore unknown `_meta` keys — they MUST NOT reject
+  the payload solely because of an unfamiliar `_meta` field.
+- Senders SHOULD NOT use `_meta` for fields that have a canonical
+  ARP location. If the canonical schema gains a field that overlaps
+  an existing `_meta` extension, the canonical wins; the `_meta`
+  extension SHOULD be deprecated within 30 days (per §7
+  reorientation clause).
+
+`_meta` is available on the envelope and on every `$def` object
+(`Warning`, `Recommendation`, `Pattern`, `Score`, `Memory`,
+`SkillManifest`, `ProjectInfo`).
 
 ---
 
@@ -116,10 +193,12 @@ part of ARP itself.
 {
   "severity": "fatal" | "error" | "warning" | "info" | "debug",
   "summary": "<2-3 sentence human-readable status>",
-  "score": 0..100,                           // optional health score
+  "score": 0..100,                           // optional one-shot health score
   "metrics": { ... },                        // free-form key/value, see §3.2
   "warnings":        [Warning],              // see §3.3
-  "recommendations": [Recommendation]        // see §3.4
+  "recommendations": [Recommendation],       // see §3.4
+  "scores":          [Score],                // optional, v1.1 — see §3.5
+  "_meta":           { ... }                 // optional, v1.1 — see §2.1
 }
 ```
 
@@ -187,12 +266,18 @@ matter". It is the unit on which the AgentMinds filter pipeline operates.
 
 #### Field semantics
 
-- **`fingerprint`** — Stable identity across reports and sites. SHOULD be
-  computed as `sha256(agent_name + "::" + normalize(message))` where
-  `normalize` lowercases, strips whitespace, and removes volatile
-  numerics (timestamps, request IDs, percentages). If the SDK omits it,
-  the collector MUST compute and persist a server-side fingerprint
-  before storing the row.
+- **`fingerprint`** — Stable identity across reports and sites.
+  Two forms accepted (v1.1):
+  - **Single string** (canonical ARP): `sha256(agent_name + "::" + normalize(message))`,
+    lowercase hex, 64 chars. `normalize` lowercases, strips whitespace,
+    and removes volatile numerics (timestamps, request IDs, percentages).
+  - **Array of strings** (Sentry-aligned, v1.1+): segments are joined
+    server-side. The literal `{{ default }}` placeholder MAY appear at
+    any position to inherit the SDK's default fingerprint logic.
+    Example: `["myAppErrorType", "{{ default }}"]`.
+
+  If the SDK omits `fingerprint`, the collector MUST compute and persist
+  a server-side single-string form before storing the row.
 - **`level`** vs **`severity`** — `level` follows Sentry semantics (log
   severity); `severity` follows incident-management semantics
   (`critical`/`high`/`medium`/`low`). Senders MAY supply both. If only
@@ -254,6 +339,51 @@ Default freshness windows:
 
 `title` is REQUIRED; everything else is OPTIONAL but `priority`,
 `fingerprint`, and `category` are STRONGLY RECOMMENDED.
+
+### 3.5 `Score` object (v1.1)
+
+Typed evaluation outcome. Lineage: Langfuse Score model + LangSmith
+Feedback. Use Score when you need to attach an evaluation verdict
+(numeric / categorical / boolean) to a warning, a pattern, or the
+report as a whole — without overloading `Recommendation.confidence`
+(which only handles numeric).
+
+```jsonc
+{
+  "fingerprint":              "<sha256 hex or array>",  // optional
+  "key":                      "<short stable id>",      // REQUIRED
+  "data_type":                "numeric" | "categorical" | "boolean",   // REQUIRED
+  "value":                    <number | string | boolean>,             // REQUIRED
+  "name":                     "<human-readable label>",
+  "comment":                  "<optional rationale>",
+  "warning_fingerprints":     ["<fp>", ...],
+  "pattern_fingerprints":     ["<fp>", ...],
+  "compared_to_baseline_id":  "<run id>",
+  "_meta":                    { ... }
+}
+```
+
+#### Required vs optional
+
+- **REQUIRED:** `key`, `data_type`, `value`
+- **`data_type`** is a **closed enum** (`numeric` / `categorical` /
+  `boolean`). Vendor extensions go through `_meta`, not new
+  `data_type` values, to avoid enum fragmentation.
+- **`value`** type MUST match `data_type`:
+  - `numeric` → JSON number
+  - `categorical` → JSON string
+  - `boolean` → JSON boolean
+
+#### When to use Score vs Recommendation.confidence
+
+- Use **`Score`** for evaluation verdicts: "this output is toxic",
+  "passed safety filter", "hallucination risk = 0.7". Multi-modal,
+  attachable to many entities, designed for eval pipelines.
+- Use **`Recommendation.confidence`** for "how confident are we that
+  this recommendation is correct?" — single 0..1 float, baked into
+  the recommendation itself.
+
+The two coexist; they are not aliases.
 
 ---
 
@@ -411,12 +541,21 @@ format.
 - ARP uses **semantic versioning**: `MAJOR.MINOR.PATCH`.
 - **MINOR** bumps add OPTIONAL fields. Senders SHOULD continue to work
   against older collectors; collectors SHOULD ignore unknown fields.
+  v1.1 is exactly this kind of bump (Score, `_meta`, fingerprint
+  union, session/user/conversation IDs — all additive).
 - **MAJOR** bumps remove or rename REQUIRED fields. Migration notes
   ship in `docs/arp-migration-<old>-to-<new>.md`.
 - Senders SHOULD include `arp_version` at the envelope root. Collectors
   MUST default to the latest minor of the same major when omitted.
 - The canonical JSON Schema is at
   [`docs/schemas/agent_report.schema.json`](schemas/agent_report.schema.json).
+
+### 7.1 Version compatibility matrix
+
+| v1.0 sender → v1.1 collector | ✅ Works unchanged. v1.0 fields are a subset of v1.1. |
+| v1.1 sender → v1.0 collector | ✅ Works. Collector ignores unknown fields per §7. New fields (`scores`, `_meta`, `session_id`, etc.) are silently dropped. |
+| v1.1 sender → v1.1 collector | ✅ Full feature set. Recommended path. |
+| Pre-v1.0 (`ars_version`) sender | ✅ Works. `ars_version` accepted as alias for `arp_version`. |
 - **Reorientation clause:** if any of the upstream lineage standards
   (Sentry / OTel GenAI / MCP / Claude Skills / OASF) absorbs the
   pattern-lifecycle primitive (§4.1) into their own canonical spec,
@@ -467,9 +606,14 @@ unlocks cross-site recommendation filtering at **L2**+.
 
 ```json
 {
-  "arp_version": "1.0",
+  "arp_version": "1.1",
   "agent": "uptime_agent",
   "site_id": "site_a1b2c3",
+  "session_id": "run_2026-04-27T09:15Z",
+  "_meta": {
+    "com.agentminds.deploy_id": "render-dep-d7n7abcd",
+    "com.agentminds.region": "frankfurt"
+  },
   "report": {
     "severity": "warning",
     "summary": "All 3 endpoints responding; api.example.com p95 climbed 18%.",
@@ -499,10 +643,38 @@ unlocks cross-site recommendation filtering at **L2**+.
         "warning_fingerprints": ["0c5e2f1d…64hex"],
         "confidence": 0.7
       }
+    ],
+    "scores": [
+      {
+        "key": "p95_within_budget",
+        "data_type": "boolean",
+        "value": false,
+        "warning_fingerprints": ["0c5e2f1d…64hex"]
+      },
+      {
+        "key": "p95_drift_pct",
+        "data_type": "numeric",
+        "value": 18.3,
+        "name": "p95 24h drift",
+        "compared_to_baseline_id": "run_2026-04-26T03:00Z"
+      }
     ]
   }
 }
 ```
+
+Compare with the **Sentry-style fingerprint array** form:
+
+```json
+{
+  "warnings": [{
+    "message": "p95 climbed",
+    "fingerprint": ["uptime_agent", "p95_drift", "{{ default }}"]
+  }]
+}
+```
+
+Both forms are valid in v1.1; senders pick one per payload.
 
 ---
 
@@ -518,7 +690,7 @@ unlocks cross-site recommendation filtering at **L2**+.
 ## 12. Public comment
 
 Issues, suggestions, and PRs welcome at
-[github.com/UzunGridera/Agentminds](https://github.com/UzunGridera/Agentminds)
+[github.com/agentmindsdev/profile](https://github.com/agentmindsdev/profile)
 under the label `arp-spec`. We will host an `arp-spec` discussion on the
 [MCP working group](https://github.com/modelcontextprotocol/specification/discussions)
 and the [AGNTCY observability WG](https://github.com/agntcy) once the
@@ -553,3 +725,35 @@ Foundation), a vendor commitment to keep the spec open, or a
 de-facto adoption advantage that makes co-existence safer than
 competition. Vendor-internal observability schemas — even good ones
 — are not anchors we can build on long-term.
+
+---
+
+## 14. Standards landscape — research basis (2026-04-27)
+
+This profile is grounded in a 12-target landscape analysis. The
+research compared OASF / MCP / A2A / OTel GenAI / Sentry / Anthropic
+Skills / LangSmith / Arize Phoenix / Langfuse / OpenAI Agents SDK /
+ACP / Cloudflare Agents against AgentMinds' delivery surface.
+
+Key findings:
+
+- **AgentMinds' moat is the combination of cross-site pattern share
+  + fingerprint dedup + lifecycle aggregation + Beta-Bernoulli
+  confidence + drift detection.** No single one of the 12 standards
+  combines all of these. Sentry has fingerprint + lifecycle but is
+  single-org; OASF has cross-site federation but no pattern-level
+  dedup; OTel has telemetry but no opinion on lifecycle.
+- **ACP merged into A2A in August 2025.** Refer only to A2A from
+  here forward.
+- **MCP, A2A, AGNTCY are all under Linux Foundation AI & Data.**
+  They stack rather than compete (SLIM ↓ A2A ↓ MCP ↓ OASF).
+- **Anthropic Claude Skills is the largest distribution channel:**
+  125K stars, 277K installs/skill. AgentMinds patterns can be
+  re-packaged as `SKILL.md` for Claude Code reach.
+- **Cloudflare Agents is a runtime layer (Durable Objects + SQLite),
+  not a spec.** AgentMinds-instrumented agents can run on it;
+  there is no schema to integrate.
+
+Read the full landscape report at
+[`docs/research/STANDARDS_LANDSCAPE_v1.md`](research/STANDARDS_LANDSCAPE_v1.md)
+in the closed-source agentmindsdev/agentminds repo.

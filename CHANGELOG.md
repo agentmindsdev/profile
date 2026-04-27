@@ -6,6 +6,79 @@ documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this profile adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] — 2026-04-27
+
+Additive backwards-compat release. v1.0 senders work unchanged
+against v1.1 collectors. v1.1 senders work against v1.0 collectors
+because all new fields are OPTIONAL and unknown-key-safe.
+
+Driven by `STANDARDS_DEEPDIVE_2026_04_27/ULTIMATE_PROFILE_RECOMMENDATION.md`
+(12-target deep-dive synthesis). Phase 1A scope (4/7 of the must-ship
+tier from the report).
+
+### Added
+
+- **§3.5 `Score` primitive.** Typed evaluation outcomes (`numeric` /
+  `categorical` / `boolean`) attached to warnings, patterns, or the
+  report as a whole. Closed `data_type` enum to prevent fragmentation.
+  Lineage: Langfuse Score model + LangSmith Feedback. Unlocks eval
+  pipeline interop.
+- **§2.1 `_meta` reverse-DNS extension envelope.** MCP-aligned
+  vendor extension convention. Available on the envelope and on every
+  `$def` (Warning, Recommendation, Pattern, Score, Memory,
+  SkillManifest, ProjectInfo). Reserved second-level namespaces:
+  `agentminds.*`, `arp.*`. Other implementers use first-come-first-
+  served reverse-DNS.
+- **§3.3 fingerprint accepts array form.** Sentry-aligned
+  `string[]` form with `{{ default }}` placeholder support coexists
+  with the canonical lowercase-hex SHA-256 single-string form. Per
+  payload, senders pick one; v1.0 senders unaffected.
+- **§2 envelope additions:** `session_id`, `user_id`,
+  `conversation_id`. Multi-turn agent flow correlation; aliases of
+  LangSmith Threads + OpenInference `session.id` / `user.id` + OTel
+  `gen_ai.conversation.id` semantics.
+- **§7.1 version compatibility matrix.** Explicit table covering
+  v1.0↔v1.1 cross-version interop guarantees.
+
+### Spec doc updates
+
+- §10 worked example now demonstrates `_meta`, `session_id`,
+  `scores[]`, and the fingerprint array form side-by-side.
+- §7 versioning text now explicitly identifies v1.1 as a MINOR
+  (additive) bump and gives senders a clear upgrade path.
+
+### Schema
+
+- `$id` and `title` reference v1.1.
+- `Fingerprint` is now a `oneOf` between the canonical string form
+  and the Sentry-aligned array form.
+- New `Score` `$def` with closed `data_type` enum.
+- `_meta` field added to top-level + `Report` + `Warning` +
+  `Recommendation` + `Pattern` + `Memory` + `ProjectInfo` +
+  `SkillManifest` + `Score`.
+- `session_id`, `user_id`, `conversation_id` top-level properties.
+
+### Tests
+
+- 24 new test cases covering each addition, including v1.0
+  backwards-compat round-trips and rejection of malformed inputs
+  (empty fingerprint array, invalid `Score.data_type`, empty
+  `session_id` string).
+- Total schema validator tests: 20 → 44.
+
+### Reorientation watch
+
+Per §7 reorientation clause and the deep-dive Section 6, any of the
+following upstream events triggers ARP MAJOR+1 within 30 days:
+
+- MCP Skills Over MCP WG ships `notifications/agent/learned`
+- AGNTCY OASF v2 adds `learned_pattern` object class
+- Sentry adds Pattern / cross-environment-fingerprint primitive
+- OpenInference SemConv adds `pattern.*` attributes
+
+A `agentminds-standards-watcher` bot (Phase 4 of the v1.1 plan)
+will monitor these upstreams weekly.
+
 ## [1.0.0] — 2026-04-27
 
 ### Added
