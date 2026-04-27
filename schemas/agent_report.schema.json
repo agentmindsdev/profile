@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://docs.agentminds.dev/schemas/agent_report.schema.json",
-  "title": "AgentMinds Reporting Profile (ARP) v1.2",
+  "title": "AgentMinds Reporting Profile (ARP) v1.2.1",
   "description": "Wire format for agent reports, warnings, learned patterns, recommendations and skill manifests. See docs/AGENT_REPORTING_PROFILE.md. ARP is a profile built on Sentry + OTel GenAI + MCP + Claude Skills + AGNTCY OASF; it is NOT a competing standard.",
   "type": "object",
   "required": ["agent", "report"],

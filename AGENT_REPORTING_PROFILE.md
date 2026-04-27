@@ -1,6 +1,6 @@
 # AgentMinds Reporting Profile (ARP)
 
-**Version:** 1.2.0
+**Version:** 1.2.1
 **Status:** Internal profile — open for public comment
 **Maintainer:** AgentMinds (`api.agentminds.dev`)
 **License:** CC-BY-4.0
@@ -117,7 +117,31 @@ POST, MCP, gRPC over SLIM) to get a full agent-to-platform pipeline.
 
 ---
 
-## 1. Glossary
+## 1. Glossary and normative references
+
+### 1.5 Normative references (v1.2.1)
+
+The following upstream specs are cited NORMATIVELY by ARP. Implementations
+MUST honour the latest version listed unless otherwise stated.
+
+| Spec | Version | License | What ARP defers to |
+|---|---|---|---|
+| **[Sentry Data Schemas](https://github.com/getsentry/sentry-data-schemas)** | v7+ | BSD-3-Clause | Issue lifecycle (`status`, `first_seen`, `last_seen`, `fingerprint`, `level`, `breadcrumbs`, `mechanism.handled`) |
+| **[OpenTelemetry Semantic Conventions — GenAI](https://opentelemetry.io/docs/specs/semconv/gen-ai/)** | 1.27+ | Apache-2.0 | `gen_ai.*` attribute namespace, span shapes, GenAI events, metric instruments + UCUM units |
+| **[OpenInference v1](https://github.com/Arize-ai/openinference/blob/main/spec/semantic_conventions.md)** | v1 spec text | Apache-2.0 (spec only — Phoenix runtime explicitly excluded per §13 REJECT list) | `openinference.span.kind` 10-value enum, `llm.*` / `retrieval.*` / `tool.*` attribute namespaces |
+| **[Model Context Protocol (MCP)](https://modelcontextprotocol.io/specification)** | 2025-11-25 | MIT | `_meta` reverse-DNS extension envelope, JSON-RPC 2.0 transport binding, planned Skills-Over-MCP |
+| **[Anthropic Claude Skills](https://github.com/anthropics/skills)** + **[agentskills.io](https://agentskills.io)** | open spec | (community) | `SKILL.md` YAML frontmatter (`name`, `description`, `version`, `license`, `metadata`, `compatibility`, `allowed_tools`) |
+| **[AGNTCY OASF](https://github.com/agntcy/oasf)** | v1 | Apache-2.0 | `descriptor` envelope, `metric` shape, observability data referencing, skill taxonomy IDs |
+| **[Langfuse Score model](https://langfuse.com/docs/scores)** | (open) | MIT | Score primitive shape (numeric/categorical/boolean) |
+| **[OpenAI Agents SDK](https://openai.github.io/openai-agents-python/)** | v0.1+ | Apache-2.0 (SDK shape adopted as a vocabulary; ARP does NOT use the proprietary trace exporter) | 8-value span subtype enum, Handoff field shape |
+
+The Sentry implementation, the OpenInference Phoenix runtime, the OpenAI
+Agents SDK proprietary tracing backend, the LangSmith vendor-locked
+backend, and the AGNTCY SLIM transport are each cited only at the
+schema/vocabulary level — ARP does not take a runtime dependency on
+any of them. See §13 (REJECT list).
+
+### 1. Glossary
 
 - **Agent** — A named software process that observes a system and emits
   reports about it. (`uptime_agent`, `seo_agent`, `freshness_agent`)
@@ -295,6 +319,12 @@ matter". It is the unit on which the AgentMinds filter pipeline operates.
 
   If the SDK omits `fingerprint`, the collector MUST compute and persist
   a server-side single-string form before storing the row.
+
+  **Sentry alias (v1.2.1):** `Warning.fingerprint` is the canonical
+  ARP field. For Sentry SDK ingest compatibility, collectors SHOULD
+  also accept the JSON pointer alias `event.fingerprint` (Sentry's
+  envelope field name) and treat it identically. Server-side
+  normalization MUST emit only the canonical name on outbound payloads.
 - **`level`** vs **`severity`** — `level` follows Sentry semantics (log
   severity); `severity` follows incident-management semantics
   (`critical`/`high`/`medium`/`low`). Senders MAY supply both. If only
@@ -356,6 +386,51 @@ Default freshness windows:
 
 `title` is REQUIRED; everything else is OPTIONAL but `priority`,
 `fingerprint`, and `category` are STRONGLY RECOMMENDED.
+
+**LangSmith alias (v1.2.1):** when `confidence` is a 0..1 numeric, it
+is wire-compatible with LangSmith's `feedback.score` primitive.
+Collectors building a `arp-langsmith-bridge` MAY map between the two
+without lossy translation. For richer eval shapes (categorical /
+boolean / comparative), use `Score` (§3.5) instead.
+
+### 3.4.1 `gen_ai.evaluation.result` → §4.1 Pattern bridge (v1.2.1)
+
+When an OTel GenAI span carries a `gen_ai.evaluation.result` attribute,
+the collector MAY auto-promote that result into an ARP §4.1 Pattern
+once it has been observed `≥ N` times across distinct sites (default
+N=3). Informative only; reference shapes:
+
+```jsonc
+// Source — OTel GenAI span attribute
+{
+  "name": "evaluation.run",
+  "attributes": {
+    "gen_ai.system": "openai",
+    "gen_ai.evaluation.name": "hallucination_check",
+    "gen_ai.evaluation.result": "fail"
+  }
+}
+
+// Auto-promoted — ARP §4.1 Pattern
+{
+  "fingerprint": "<sha256(agent + '::hallucination_check::fail')>",
+  "pattern":     "hallucination_check fails on long-context prompts",
+  "category":    "quality",
+  "status":      "active",
+  "confidence":  0.0,                  // Beta-Bernoulli updates each observation
+  "first_seen":  "<first observation>",
+  "last_seen":   "<latest observation>",
+  "_meta": {
+    "agentminds.bridge.source": "otel.gen_ai.evaluation.result",
+    "agentminds.bridge.threshold_n": 3
+  }
+}
+```
+
+This bridge lets observability-first stacks (Langfuse, Arize,
+OpenInference adopters) surface cross-site patterns without wiring
+ARP push directly. Implementation in a future ARP collector; spec
+text is informative as of v1.2.1.
 
 ### 3.6 `Breadcrumb` trail (v1.1.1)
 
@@ -648,6 +723,17 @@ SKILL.md spec. AgentMinds publishes its own skills (`agentminds-status`,
 `agentminds-agents`, `agentminds-pool`, `agentminds-connect`,
 `agentminds-push-report`) in this format.
 
+#### v1.2.1 OASF 90000-99999 range reservation
+
+ARP reserves OASF taxonomy IDs **90000-99999** as the
+`agentminds.*` extension namespace per the §1.5 normative reference
+to AGNTCY OASF. Vendors building skills against ARP MAY allocate
+their own number from this range without colliding with upstream
+canonical IDs (1xxx, 5xxx, etc).
+
+To reserve a sub-range, file a PR against [`agentmindsdev/profile`](https://github.com/agentmindsdev/profile)
+adding your range to a `RESERVED_RANGES.md` (forthcoming).
+
 ---
 
 ## 7. Versioning & evolution
@@ -694,6 +780,40 @@ ARP is transport-agnostic. Common bindings:
 
 For agent identity beyond a shared API key, AgentMinds plans to support
 W3C Verifiable Credentials per AGNTCY's Identity Service in ARP 2.0.
+
+### 8.1 `/.well-known/arp.json` self-description (v1.2.1, NORMATIVE)
+
+Every ARP-conformant collector MUST publish a self-description at
+`/.well-known/arp.json` — the canonical discovery point for any tool
+or agent that wants to integrate. Think of it as the ARP equivalent
+of A2A's `agent-card.json` or AGNTCY's `oasf-descriptor.json`, but
+focused specifically on what ARP version and conformance level the
+collector implements.
+
+```jsonc
+{
+  "arp_version": "1.2.1",
+  "conformance_level": "L2",   // L0..L5 per §9
+  "endpoints": {
+    "ingest": "https://api.agentminds.dev/api/v1/sync/report",
+    "ingest_otel": "https://api.agentminds.dev/api/v1/sync/ingest/otel",
+    "connect": "https://api.agentminds.dev/api/v1/connect"
+  },
+  "auth_schemes": ["apiKey:Authorization", "apiKey:X-AgentMinds-Key"],
+  "spec_url": "https://github.com/agentmindsdev/profile",
+  "schema_url": "https://github.com/agentmindsdev/profile/blob/main/schemas/agent_report.schema.json",
+  "extensions_advertised": ["agentminds_io.*", "openinference.*"],
+  "links": [
+    { "rel": "agent_card", "href": "/.well-known/agent-card.json" },
+    { "rel": "oasf_descriptor", "href": "/.well-known/oasf-descriptor.json" },
+    { "rel": "mcp_server", "href": "/.well-known/mcp-server.json" }
+  ]
+}
+```
+
+Cross-collector tools (adapters, analytics, dashboards) SHOULD probe
+`/.well-known/arp.json` first to discover the collector's surface
+before issuing typed requests.
 
 ---
 
