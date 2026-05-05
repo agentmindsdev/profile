@@ -502,6 +502,39 @@ chronologically (oldest first, most-recent last).
 
 **REQUIRED:** `timestamp`, `type`. Everything else is OPTIONAL.
 
+### 3.7 `Exception` evidence (v1.2.0)
+
+Structured exception payload. Lineage:
+[Sentry Data Schemas](https://github.com/getsentry/sentry-data-schemas)
+exception envelope, including the `mechanism.handled` field for
+handled-vs-uncaught triage. Goes inside `Warning.evidence.exception`
+when an agent reports a thrown/caught error.
+
+```jsonc
+{
+  "type":       "<string — exception class name, e.g. 'ValueError', 'TimeoutError'>",
+  "value":      "<string — stringified exception message>",
+  "module":     "<string — importable module path>",
+  "stacktrace": { ... },
+  "mechanism": {
+    "handled": <boolean>,
+    "type":    "<string — exception_handler | signal | unhandled | ...>"
+  }
+}
+```
+
+#### Required vs optional
+
+All fields OPTIONAL.
+
+#### Field semantics
+
+- **`mechanism.handled`** — `true` = caught by agent's try/except. `false` = uncaught (reached the top of the stack).
+- **`mechanism.type`** — how the exception entered the report: `exception_handler` / `signal` / `unhandled` / etc.
+
+Senders SHOULD attach this object at `Warning.evidence.exception` so
+consumers can locate it deterministically.
+
 ---
 
 ## 4. `memory` — What the agent has learned
