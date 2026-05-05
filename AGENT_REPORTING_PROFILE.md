@@ -5,6 +5,14 @@
 **Maintainer:** AgentMinds (`api.agentminds.dev`)
 **License:** CC-BY-4.0
 
+> **What's new in 1.2.1** (2026-05-05, additive over 1.2.0) — cross-standard alias / bridge / discovery primitives:
+>
+> - **§3.3 Sentry `event.fingerprint` alias** — collectors accept Sentry SDK's `event.fingerprint` JSON-pointer alias; canonical stays `Warning.fingerprint` on outbound (Sentry SDK ingest)
+> - **§3.4 LangSmith `confidence` ↔ `feedback.score` alias** — `Recommendation.confidence` (0..1 numeric) is wire-compatible with LangSmith's `feedback.score` primitive
+> - **§3.4.1 `gen_ai.evaluation.result` → §4.1 Pattern bridge** — collectors MAY auto-promote OTel `gen_ai.evaluation.result` to §4.1 Patterns after ≥ N distinct sites (default N=3); lets Langfuse / Arize / OpenInference stacks surface cross-site patterns without ARP push
+> - **§6.1 OASF 90000-99999 range reservation** — reserves AGNTCY OASF taxonomy IDs **90000-99999** as the `agentminds.*` extension namespace (AGNTCY OASF)
+> - **§8.1 `/.well-known/arp.json` self-description (NORMATIVE)** — every collector MUST publish `arp_version`, `conformance_level`, endpoints, and links at this path (A2A `agent-card.json` / AGNTCY `oasf-descriptor.json` parity)
+>
 > **What's new in 1.2.0** (2026-04-27, additive over 1.1.1) — Phase 2 of the deepdive plan:
 >
 > - **§2.2 `lifecycle_event` envelope** — `cold_start` / `wake` / `scheduled` / `shutdown` / `running` for hibernate-aware runtimes (Cloudflare DO, Lambda)
