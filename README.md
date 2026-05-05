@@ -28,14 +28,17 @@ A minimal **L0**-conformant report (only `agent` + `report` are required):
 }
 ```
 
-Validate it:
+Validate it (no clone required — fetches the schema from this repo):
 
 ```bash
 npx ajv-cli@5 validate \
-  -s schemas/agent_report.schema.json \
+  -s https://raw.githubusercontent.com/agentmindsdev/profile/main/schemas/agent_report.schema.json \
   -d your-report.json \
   --spec=draft2020 --strict=false
 ```
+
+Or, if you've cloned the repo, use the local schema path
+(`-s schemas/agent_report.schema.json`).
 
 For payloads at every conformance level (L0 through L4), see
 [**examples/**](examples/) — each file is the smallest report that
@@ -93,9 +96,10 @@ Full notes in [CHANGELOG.md](CHANGELOG.md).
 ## Used by
 
 - **[agentminds.dev](https://agentminds.dev)** — reference
-  implementation. ~1,164 patterns flowing through the L3 envelope as
-  of 2026-05-04. Public stats at
-  [agentminds.dev/showcase](https://agentminds.dev/showcase).
+  implementation. A growing pool of patterns flows through the L3
+  envelope; live counters at
+  [agentminds.dev/showcase](https://agentminds.dev/showcase) and
+  [agentminds.dev/status](https://agentminds.dev/status).
 
 If your project also adopts ARP, open a PR adding it here. The list
 is the cleanest signal that the spec is consumed, not just published.
@@ -179,15 +183,22 @@ the spec owner. See §7 of the spec for the formal versioning rule.
 
 Public comment, suggestions, and PRs welcome.
 
+- **General questions / use-case stories** — open a
+  [Discussion](https://github.com/agentmindsdev/profile/discussions).
+  This is the right kind of door for "how would I use ARP for X?" or
+  "is anyone else doing Y?" — not formal enough for an issue.
 - **Spec feedback** — open an
   [`[ARP-SPEC]` issue](https://github.com/agentmindsdev/profile/issues/new?template=arp-spec-feedback.md)
+  for clarity / schema / new-primitive proposals.
 - **Upstream version drift** — open a
   [`[LINEAGE]` issue](https://github.com/agentmindsdev/profile/issues/new?template=lineage-update.md)
+  when an upstream we defer to (Sentry / OTel / MCP / Skills / OASF)
+  releases a new version that may affect ARP.
 - **Pull requests** — typo / clarity / example fixes go straight to
-  PR; schema changes need an issue first
+  PR; schema changes need an issue first.
 - **External standards engagement** — if you sit on the MCP working
   group, OTel GenAI SIG, AGNTCY observability WG, or related body,
-  we'd love to hear how ARP can defer to your work
+  we'd love to hear how ARP can defer to your work.
 
 ## License
 
@@ -198,5 +209,5 @@ Reuse and adapt freely; attribution to AgentMinds appreciated. See
 
 ## Suggested citation
 
-> AgentMinds (2026). *AgentMinds Reporting Profile v1.2*. CC-BY-4.0.
+> AgentMinds (2026). *AgentMinds Reporting Profile v1.2.0*. CC-BY-4.0.
 > https://github.com/agentmindsdev/profile
