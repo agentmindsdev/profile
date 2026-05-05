@@ -1057,6 +1057,77 @@ Compare with the **Sentry-style fingerprint array** form:
 
 Both forms are valid in v1.1; senders pick one per payload.
 
+### v1.2 primitives in context
+
+Three additive primitives from v1.2 land orthogonally to the L2
+envelope. Each block below is the minimum a sender needs to exercise
+one primitive — drop them straight into the L2 payload above.
+
+**`lifecycle_event`** — top-level signal for hibernate-aware runtimes.
+Fresh-wake warnings should carry less weight than steady-state ones,
+so collectors can discount them.
+
+```json
+{
+  "arp_version": "1.2.1",
+  "agent": "edge_uptime_check",
+  "lifecycle_event": "cold_start",
+  "report": {
+    "summary": "Cold-start probe — region cache empty, p95 inflated.",
+    "warnings": [{
+      "message": "p95 = 612ms vs steady-state baseline 190ms.",
+      "severity": "low",
+      "category": "performance",
+      "_meta": { "com.agentminds.discount_for_cold_start": true }
+    }]
+  }
+}
+```
+
+**`Exception` evidence** — Sentry-aligned. Goes inside
+`Warning.evidence.exception` when the warning was raised by a
+caught/uncaught throw. `mechanism.handled` is the triage hint.
+
+```json
+{
+  "warnings": [{
+    "fingerprint": "9a3e7c1b…64hex",
+    "message": "Vector store query failed; fell back to keyword search.",
+    "severity": "high",
+    "category": "infra",
+    "evidence": {
+      "exception": {
+        "type": "TimeoutError",
+        "value": "qdrant.search() exceeded 5000ms",
+        "module": "agentminds.retrieval.vector",
+        "mechanism": { "handled": true, "type": "exception_handler" }
+      }
+    }
+  }]
+}
+```
+
+**`Handoff`** — multi-agent delegation event. Goes in
+`report.handoffs[]`. OpenAI Agents SDK lineage.
+
+```json
+{
+  "report": {
+    "summary": "Triage agent delegated to specialist after low confidence.",
+    "handoffs": [{
+      "from_agent": "triage_agent",
+      "to_agent":   "billing_specialist",
+      "trigger":    "Intent confidence below 0.7 threshold.",
+      "occurred_at": "2026-04-27T09:15:42Z"
+    }]
+  }
+}
+```
+
+These three primitives compose: a single payload MAY carry a
+`lifecycle_event`, an `evidence.exception` inside a warning, and a
+`handoffs[]` array — they share no fields and do not conflict.
+
 ---
 
 ## 11. Implementer notes
