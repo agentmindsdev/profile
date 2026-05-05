@@ -106,21 +106,25 @@ is the cleanest signal that the spec is consumed, not just published.
 
 ## Lineage
 
-Each row is **pinned** to the upstream version we tested ARP against.
-Bumping ARP's version requires re-checking each upstream; if any
-absorbed an ARP primitive, see the Reorientation clause below.
+Each row cites the upstream version ARP defers to. ARP version bumps
+require re-checking each upstream; if any absorbs an ARP primitive,
+see the Reorientation clause below.
 
-| Source (pinned) | What we adopt |
-|---|---|
-| [Sentry data schemas](https://github.com/getsentry/sentry-data-schemas) — pinned to `main` snapshot 2026-04-01 | Issue lifecycle: `status`, `first_seen`, `last_seen`, `fingerprint`, `level`; `Exception.mechanism.handled` |
-| [OpenTelemetry GenAI semconv](https://opentelemetry.io/docs/specs/semconv/gen-ai/) — pinned to v1.31.0 | Metric type taxonomy, UCUM units, GenAI attribute names (`gen_ai.system`, `gen_ai.usage.*`, `gen_ai.response.finish_reasons`) |
-| [Model Context Protocol](https://modelcontextprotocol.io/specification) — pinned to spec snapshot `2024-11-05` | Transport binding hint, planned Skills-Over-MCP alignment |
-| [Anthropic Claude Skills](https://github.com/anthropics/skills) — pinned to repo `main` 2026-04-15 | `SKILL.md` YAML frontmatter |
-| [AGNTCY OASF](https://github.com/agntcy/oasf) — pinned to v0.7.0 | Descriptor envelope, metric shape, observability data referencing |
+| Source | Adopted from version | What we adopt |
+|---|---|---|
+| [Sentry data schemas](https://github.com/getsentry/sentry-data-schemas) | v7+ | Issue lifecycle: `status`, `first_seen`, `last_seen`, `fingerprint`, `level`, `breadcrumbs`, `mechanism.handled` |
+| [OpenTelemetry GenAI semconv](https://opentelemetry.io/docs/specs/semconv/gen-ai/) | 1.27+ (later versions compatible — namespace is additive) | `gen_ai.*` attribute namespace, span shapes, GenAI events, metric instruments + UCUM units |
+| [Model Context Protocol](https://modelcontextprotocol.io/specification) | spec snapshot 2025-11-25 | `_meta` reverse-DNS extension envelope, JSON-RPC 2.0 transport binding, planned Skills-Over-MCP |
+| [Anthropic Claude Skills](https://github.com/anthropics/skills) + [agentskills.io](https://agentskills.io) | open spec | `SKILL.md` YAML frontmatter |
+| [AGNTCY OASF](https://github.com/agntcy/oasf) | v1+ | Descriptor envelope, metric shape, observability data referencing, skill taxonomy IDs |
 
-The five upstreams are independent of each other; ARP layers them
-into a single envelope. Where they overlap, ARP defers to the more
-opinionated upstream (Sentry for issue lifecycle, OTel for telemetry).
+The five upstreams are independent; ARP layers them into a single
+envelope. Where they overlap, ARP defers to the more opinionated
+upstream (Sentry for issue lifecycle, OTel for telemetry).
+
+For the full set of normative references (including OpenInference,
+Langfuse Score, and OpenAI Agents SDK), see
+[§1.5 of the spec](AGENT_REPORTING_PROFILE.md#15-normative-references-v121).
 
 When an upstream releases a new version, open a
 [`[LINEAGE]` issue](https://github.com/agentmindsdev/profile/issues/new?template=lineage-update.md)
@@ -147,9 +151,9 @@ absent in each:
 | OpenTelemetry GenAI | `gen_ai.*` attributes on spans | Per-call telemetry, not durable pattern objects with cross-site lifecycle |
 | Model Context Protocol | Tool / resource registries | Tools and resources, not failure-pattern catalogs |
 | AGNTCY OASF | Agent descriptors + skill taxonomy | Describes agents and skills, not what those agents *learned* across sites |
-| Sentry data schemas | Issue lifecycle (`fingerprint`, `status`) | Single-tenant: issues belong to one project; no cross-customer pool primitive |
-| OWASP / CIS benchmarks | Community-curated rule packs | Human-curated security baselines, not agent-emitted patterns |
-| Datadog / New Relic rule packs | Cross-customer alert rules | Vendor-internal, not an open spec consumers can re-implement |
+| Sentry data schemas | Issue lifecycle (`fingerprint`, `status`) | Single-tenant: issues belong to one project within one organization; no cross-customer pool primitive |
+| OWASP / CIS benchmarks | Human-curated static rule packs (security baselines / CWE checks) | Static rules, not agent-emitted patterns with per-fingerprint lifecycle and cross-site evidence aggregation |
+| Datadog Watchdog / New Relic AI | Vendor-internal anomaly detection | Proprietary engine, organization-scoped only, no open schema for re-implementation |
 
 If you know of a spec that does cover this, please open an
 [`[ARP-SPEC]` issue](https://github.com/agentmindsdev/profile/issues/new?template=arp-spec-feedback.md)
