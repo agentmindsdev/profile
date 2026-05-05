@@ -44,8 +44,8 @@ For payloads at every conformance level (L0 through L4), see
 [**examples/**](examples/) — each file is the smallest report that
 satisfies its level.
 
-For the full envelope (13 sections, every primitive),
-see [**§3 of the spec**](AGENT_REPORTING_PROFILE.md#3-envelope).
+For the full envelope and every primitive, see the
+[**13-section spec**](AGENT_REPORTING_PROFILE.md).
 
 ## What this is
 
