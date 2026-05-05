@@ -226,6 +226,32 @@ convention:
 (`Warning`, `Recommendation`, `Pattern`, `Score`, `Memory`,
 `SkillManifest`, `ProjectInfo`).
 
+### 2.2 `lifecycle_event` envelope (v1.2.0)
+
+OPTIONAL signal for hibernate-aware runtimes (Cloudflare Agents Durable
+Object, AWS Lambda cold start, etc.). Affects warning interpretation —
+fresh wake-up warnings carry less weight than steady-state ones. MUST
+NOT be required for non-hibernating agents.
+
+```jsonc
+{
+  "arp_version": "1.2.1",
+  "agent": "<string>",
+  "lifecycle_event": "<string — cold_start | wake | scheduled | shutdown | running>",
+  "report": { ... }
+}
+```
+
+#### Enum values
+
+- `cold_start`
+- `wake`
+- `scheduled`
+- `shutdown`
+- `running`
+
+OPTIONAL field at the envelope root. Non-hibernating agents omit it.
+
 ---
 
 ## 3. `report` — Current state
