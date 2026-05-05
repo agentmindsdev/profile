@@ -67,7 +67,7 @@ unchanged against v1.2.1 collectors.
 
 ## [1.2.0] — 2026-04-27
 
-Phase 2 of the v1.1 deepdive plan. 11 additive primitives covering
+Phase 2 of the v1.1 deepdive plan. Additive primitives covering
 multi-agent observability, prompt provenance, hibernation lifecycle,
 exception triage, hierarchical telemetry, and AGNTCY OASF skill
 taxonomy alignment. All backwards-compat — v1.0/v1.1.x senders work
