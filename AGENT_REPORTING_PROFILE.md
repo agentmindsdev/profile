@@ -734,6 +734,83 @@ canonical IDs (1xxx, 5xxx, etc).
 To reserve a sub-range, file a PR against [`agentmindsdev/profile`](https://github.com/agentmindsdev/profile)
 adding your range to a `RESERVED_RANGES.md` (forthcoming).
 
+### 6.2 `Handoff` primitive + `Report.handoffs[]` (v1.2.0)
+
+One multi-agent delegation event. Lineage:
+[OpenAI Agents SDK](https://openai.github.io/openai-agents-python/)
+`Handoff` class. Attached to a report as the `Report.handoffs[]` array
+— captures multi-agent delegation events that occurred during this
+report.
+
+```jsonc
+{
+  "from_agent":           "<string, REQUIRED>",
+  "to_agent":             "<string, REQUIRED>",
+  "trigger":              "<human-readable reason for the handoff>",
+  "tool_name_override":   "<string>",
+  "input_filter":         "<regex/spec describing how the input is filtered before delegation>",
+  "nest_handoff_history": <boolean>,
+  "occurred_at":          "<RFC 3339 timestamp>",
+  "_meta":                { "<reverse-DNS>": ... }
+}
+```
+
+#### Required vs optional
+
+- **REQUIRED:** `from_agent`, `to_agent`
+- All other fields OPTIONAL.
+
+### 6.3 `PromptManifest` primitive + `ProjectInfo.prompts[]` (v1.2.0)
+
+Prompt provenance. Lineage:
+[OpenInference](https://github.com/Arize-ai/openinference/blob/main/spec/semantic_conventions.md)
+`prompt.*` attributes +
+[LangSmith Prompt Hub](https://docs.smith.langchain.com/). Attached to
+`ProjectInfo.prompts[]` — describes prompts in use by this project so
+recommendation engines avoid telling you to add a prompt registry you
+already have.
+
+```jsonc
+{
+  "vendor":    "<string, e.g. 'langsmith', 'openai', 'self', 'anthropic-prompts'>",
+  "id":        "<string>",
+  "version":   "<string>",
+  "url":       "<string>",
+  "template":  "<inline template body>",
+  "variables": { "<key>": "<value>" },
+  "_meta":     { "<reverse-DNS>": ... }
+}
+```
+
+#### Required vs optional
+
+- All fields OPTIONAL.
+- Senders SHOULD provide either `url` OR `template` so consumers can
+  identify the prompt without ambiguity.
+
+### 6.4 `tech_stack.mcp_server_exposed` + `mcp_clients_consumed[]` (v1.2.0)
+
+MCP role disambiguation, attached inline to `ProjectInfo.tech_stack`.
+Distinguishes whether the project publishes tools (as an MCP server),
+consumes upstream MCP servers, or both.
+
+```jsonc
+{
+  "tech_stack": {
+    "mcp_server_exposed":   false,
+    "mcp_clients_consumed": ["<upstream MCP server URL or name>", ...]
+  }
+}
+```
+
+#### Required vs optional
+
+- All fields OPTIONAL.
+- `mcp_server_exposed`: boolean — does this site expose tools as an
+  MCP server?
+- `mcp_clients_consumed`: array of strings — upstream MCP servers
+  this site consumes.
+
 ---
 
 ## 7. Versioning & evolution
