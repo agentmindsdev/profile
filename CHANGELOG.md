@@ -6,6 +6,65 @@ documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this profile adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] — 2026-05-05
+
+Patch release over v1.2.0. Five cross-standard alias / bridge / discovery
+primitives added so ARP plays cleanly with Sentry SDKs, LangSmith
+feedback, OTel GenAI evaluation spans, AGNTCY OASF taxonomies, and
+cross-collector discovery tooling. All additive — v1.2.0 senders work
+unchanged against v1.2.1 collectors.
+
+### Added
+
+- **§3.3 Sentry `event.fingerprint` alias** — Collectors SHOULD accept
+  the JSON pointer alias `event.fingerprint` (Sentry's envelope field
+  name) and treat it identically to the canonical
+  `Warning.fingerprint`. Server-side normalization MUST emit only the
+  canonical name on outbound payloads. Lets Sentry SDK ingest land
+  without translation.
+- **§3.4 LangSmith `confidence` ↔ `feedback.score` alias** — When
+  `Recommendation.confidence` is a 0..1 numeric, it is wire-compatible
+  with LangSmith's `feedback.score` primitive. Collectors building an
+  `arp-langsmith-bridge` MAY map between the two without lossy
+  translation. Richer eval shapes (categorical / boolean / comparative)
+  continue to use `Score` (§3.5).
+- **§3.4.1 `gen_ai.evaluation.result` → §4.1 Pattern bridge** —
+  Collectors MAY auto-promote OTel GenAI `gen_ai.evaluation.result`
+  attributes into ARP §4.1 Patterns once observed ≥ N times across
+  distinct sites (default N=3). Lets observability-first stacks
+  (Langfuse, Arize, OpenInference adopters) surface cross-site
+  patterns without wiring ARP push directly. Spec text is informative
+  as of v1.2.1; reference implementation lands in a future ARP
+  collector.
+- **§6.1 OASF 90000-99999 range reservation** — ARP reserves AGNTCY
+  OASF taxonomy IDs **90000-99999** as the `agentminds.*` extension
+  namespace per the §1.5 normative reference. Vendors building skills
+  against ARP MAY allocate their own number from this range without
+  colliding with upstream canonical IDs (1xxx, 5xxx, etc.). Sub-range
+  reservations file a PR against `RESERVED_RANGES.md` (forthcoming).
+- **§8.1 `/.well-known/arp.json` self-description (NORMATIVE)** —
+  Every ARP-conformant collector MUST publish a self-description at
+  `/.well-known/arp.json` carrying `arp_version`, `conformance_level`,
+  `endpoints`, `auth_schemes`, `spec_url`, `extensions_advertised`,
+  and `links` to companion `agent_card.json` / `oasf_descriptor.json`
+  / `mcp_server.json`. Cross-collector tools (adapters, analytics,
+  dashboards) SHOULD probe this URL first to discover the collector's
+  surface before issuing typed requests. ARP equivalent of A2A's
+  `agent-card.json` or AGNTCY's `oasf-descriptor.json`.
+
+### Schema / Spec
+
+- **No additions to `agent_report.schema.json`.** §8.1 introduces a
+  separate `/.well-known/arp.json` document (not part of the report
+  envelope). The aliases (§3.3, §3.4) are collector-side normalization
+  rules; the bridge (§3.4.1) is informative; the OASF reservation
+  (§6.1) is a number range.
+- **Spec §1.5 Normative references** updated to include v1.2.1 line
+  items.
+- **Existing v1.2.0 fields unchanged.** New v1.2.1 primitives are
+  alias notes, informative bridges, namespace reservations, or
+  out-of-band discovery contracts — none expand the report envelope.
+
 ## [1.2.0] — 2026-04-27
 
 Phase 2 of the v1.1 deepdive plan. 11 additive primitives covering
