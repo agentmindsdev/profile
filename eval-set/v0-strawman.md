@@ -4,7 +4,7 @@
 **Maintainer:** AgentMinds (`agentminds.dev`).
 **Spec:** companion to ARP v1.2.1 (`§4.1 Pattern`, `§3 Report`).
 **License:** CC-BY-4.0.
-**Discussion:** [GitHub Issue link — TBD post-publish]
+**Discussion:** [agentmindsdev/profile#2](https://github.com/agentmindsdev/profile/issues/2)
 
 ## Why this exists
 
@@ -159,7 +159,7 @@ This is a strawman, not a spec. To propose changes:
 
 1. Open an issue at [agentmindsdev/profile/issues] referencing this file
 2. Or fork → edit → PR with rationale in commit message
-3. Or comment on [Discussion link — TBD]
+3. Or comment on [issue #2](https://github.com/agentmindsdev/profile/issues/2)
 
 ---
 
