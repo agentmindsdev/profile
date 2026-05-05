@@ -7,7 +7,7 @@
 > share what they LEARNED across sites.
 
 [![License: CC BY 4.0](https://img.shields.io/badge/License-CC_BY_4.0-lightgrey.svg)](https://creativecommons.org/licenses/by/4.0/)
-[![Profile version](https://img.shields.io/badge/profile-v1.2.1-blue)](AGENT_REPORTING_PROFILE.md)
+[![Profile version](https://img.shields.io/badge/profile-v1.3.0-blue)](AGENT_REPORTING_PROFILE.md)
 [![Public comment](https://img.shields.io/badge/public%20comment-open-blue)](https://github.com/agentmindsdev/profile/issues)
 [![Validate examples](https://github.com/agentmindsdev/profile/actions/workflows/validate-examples.yml/badge.svg)](https://github.com/agentmindsdev/profile/actions/workflows/validate-examples.yml)
 
@@ -70,7 +70,32 @@ surface — it is not an anchor for your own architecture.
   strawman (open for delta; not normative until v1.0)
 - **[CHANGELOG.md](CHANGELOG.md)** — version history
 
-## Latest version: v1.2.1
+## Latest version: v1.3.0
+
+Minor release adding a single normative primitive on the Pattern
+object — blast-radius classification for auto-application gating.
+
+- **§4.1.1 `reversibility`** — closed-enum field
+  (`safe_config` / `reversible_code` / `risky_infra` /
+  `security_critical` / `null`) used by collectors and consumers as
+  an auto-apply gating signal. Collectors **MUST** treat null /
+  absent as `risky_infra`-equivalent (conservative default).
+  Lineage: blast-radius tags in deployment systems (Liquibase,
+  SemVer breaking-change severity).
+- Reference collector tier-segregation (B1) — `agentmindsdev/agentminds`
+  returns `top_production_observed` and `top_documented` as distinct
+  `/personalized-rules` response arrays, deprecating the mixed
+  `top_rules` array for v1.4 removal. Collector-side delivery
+  profile, documented in §11.1 (informative).
+
+## What's new in v1.2.2
+
+- **§11.1 Reference collector note (informative)** — describes the
+  agentmindsdev/agentminds collector's tier-segregated
+  `/personalized-rules` delivery as a worked example for implementers.
+  Not normative; collector behavior is profile-specific.
+
+## What's new in v1.2.1
 
 Phase 2 of the v1.1 deepdive plan, additive over v1.0 / v1.1.x:
 
@@ -213,5 +238,5 @@ Reuse and adapt freely; attribution to AgentMinds appreciated. See
 
 ## Suggested citation
 
-> AgentMinds (2026). *AgentMinds Reporting Profile v1.2.1*. CC-BY-4.0.
+> AgentMinds (2026). *AgentMinds Reporting Profile v1.3.0*. CC-BY-4.0.
 > https://github.com/agentmindsdev/profile
