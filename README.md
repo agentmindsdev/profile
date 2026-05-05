@@ -123,7 +123,7 @@ upstream (Sentry for issue lifecycle, OTel for telemetry).
 
 For the full set of normative references (including OpenInference,
 Langfuse Score, and OpenAI Agents SDK), see
-[§1.5 of the spec](AGENT_REPORTING_PROFILE.md#15-normative-references-v121).
+[§1.2 of the spec](AGENT_REPORTING_PROFILE.md#12-normative-references-v121).
 
 When an upstream releases a new version, open a
 [`[LINEAGE]` issue](https://github.com/agentmindsdev/profile/issues/new?template=lineage-update.md)
