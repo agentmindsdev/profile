@@ -1,0 +1,24 @@
+{
+  "_comment": "L1 conformance — adds severity + category + status to each warning. Conceptually L1 is 'classified L0': you're labeling the issue but not yet tracking its lifecycle (no fingerprint, no first_seen/last_seen, no count). The next step (L2) adds the lifecycle fields to enable cross-run deduplication.",
+  "arp_version": "1.2.0",
+  "agent": "context_retriever",
+  "report": {
+    "summary": "Two retrieval issues classified by severity",
+    "warnings": [
+      {
+        "message": "Context window exceeded — retrieval truncated",
+        "level": "warning",
+        "severity": "medium",
+        "category": "performance",
+        "status": "unresolved"
+      },
+      {
+        "message": "Vector store returned 0 hits for the query",
+        "level": "info",
+        "severity": "low",
+        "category": "quality",
+        "status": "unresolved"
+      }
+    ]
+  }
+}
