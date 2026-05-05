@@ -100,8 +100,7 @@ Full notes in [CHANGELOG.md](CHANGELOG.md).
   [agentminds.dev/showcase](https://agentminds.dev/showcase) and
   [agentminds.dev/status](https://agentminds.dev/status).
 
-If your project also adopts ARP, open a PR adding it here. The list
-is the cleanest signal that the spec is consumed, not just published.
+Adopters welcome — open a PR to add your project.
 
 ## Lineage
 
@@ -111,7 +110,7 @@ see the Reorientation clause below.
 
 | Source | Adopted from version | What we adopt |
 |---|---|---|
-| [Sentry data schemas](https://github.com/getsentry/sentry-data-schemas) | v7+ | Issue lifecycle: `status`, `first_seen`, `last_seen`, `fingerprint`, `level`, `breadcrumbs`, `mechanism.handled` |
+| [Sentry data schemas](https://github.com/getsentry/sentry-data-schemas) | v7+ | Issue lifecycle (`status`, `fingerprint`, `breadcrumbs`, `mechanism.handled`) |
 | [OpenTelemetry GenAI semconv](https://opentelemetry.io/docs/specs/semconv/gen-ai/) | 1.27+ (later versions compatible — namespace is additive) | `gen_ai.*` attribute namespace, span shapes, GenAI events, metric instruments + UCUM units |
 | [Model Context Protocol](https://modelcontextprotocol.io/specification) | spec snapshot 2025-11-25 | `_meta` reverse-DNS extension envelope, JSON-RPC 2.0 transport binding, planned Skills-Over-MCP |
 | [Anthropic Claude Skills](https://github.com/anthropics/skills) + [agentskills.io](https://agentskills.io) | open spec | `SKILL.md` YAML frontmatter |
