@@ -600,6 +600,8 @@ table) once they meet confidence and universality thresholds — see
   "confidence":   0.0..1.0,
   "impact":       "critical" | "high" | "medium" | "low",
   "status":       "active" | "solved" | "obsolete",
+  "reversibility":"safe_config" | "reversible_code" | "risky_infra"
+                 | "security_critical" | null,    // v1.3.0
   "first_seen":   "<RFC 3339>",
   "last_seen":    "<RFC 3339>",
   "first_seen_run": <integer>,               // run index when first observed
@@ -608,6 +610,43 @@ table) once they meet confidence and universality thresholds — see
   "applicable_site_types": ["ecommerce", "blog", ...]
 }
 ```
+
+#### 4.1.1 `reversibility` semantics (v1.3.0, OPTIONAL)
+
+Blast-radius classification used by collectors and consumers as an
+auto-application gating signal. Closed enum:
+
+| Value | Meaning | Auto-apply policy |
+|---|---|---|
+| `safe_config` | Config edits, HTTP headers, env vars, lint fixes. No code or schema change. | Auto-apply allowed by default. |
+| `reversible_code` | Code refactor, feature flag toggles, library upgrades behind a flag. Rollback ≤ 1 commit. | Auto-apply with one-click revert button; review optional. |
+| `risky_infra` | Database schema migrations, infra changes requiring downtime, anything with state mutation that's not trivially reversible. | Manual gate required. Consumer surfaces "review and confirm." |
+| `security_critical` | Auth flow changes, secret handling, encryption, access control. | Manual gate **and** audit trail required. Consumer logs application + review. |
+| `null` (or absent) | Unclassified. | **Treat as `risky_infra`-equivalent.** Do not auto-apply. |
+
+**Default behaviour for absent or null field:** collectors and
+consumers MUST treat missing `reversibility` as if it were
+`risky_infra` for auto-application gating. This is conservative on
+purpose — pre-classification null state must never expand the
+auto-apply surface.
+
+**Provenance:** classification SHOULD be set by the harvester /
+extractor at pattern ingest time, using LLM classification or static
+heuristics. Manual override is permitted but SHOULD carry an audit
+note (`_meta["com.agentminds.reversibility_override"]`) explaining
+the rationale. Backfill of legacy patterns is **NOT** required by
+the spec — implementations may leave older patterns null
+indefinitely. The risk of incorrect bulk reclassification (e.g. an
+LLM stamping a destructive action as `safe_config`) is greater than
+the benefit of having every pattern labelled.
+
+**Lineage:** averageuser612 r/LangChain feedback (2026-05-04).
+Conceptual parallel: blast-radius labels in deployment systems
+(Liquibase safe/risky migration tags, SemVer breaking-change
+severity, AWS CloudFormation update-replace policy). Adopted as a
+Pattern primitive because cross-site sharing amplifies the
+auto-apply risk — a pattern marked `safe_config` incorrectly could
+cascade across many sites before the error is caught.
 
 #### Status semantics
 
@@ -902,6 +941,9 @@ consumes upstream MCP servers, or both.
 | v1.0 / v1.1 sender → v1.2 collector | ✅ Works. v1.2 collector accepts older payloads unchanged; v1.2-only features unused. |
 | v1.2 sender → v1.0 / v1.1 collector | ✅ Works. Collector ignores unknown fields per §7. v1.2 fields (e.g., `lifecycle_event`, `exception`, `handoffs`, `prompts`) are silently dropped. |
 | v1.2 sender → v1.2 collector | ✅ Full feature set. Recommended path. |
+| v1.2.x sender → v1.3 collector | ✅ Works. Collector treats absent `Pattern.reversibility` as null → defaults to `risky_infra` gating per §4.1.1. |
+| v1.3 sender → v1.2.x collector | ✅ Works. Collector ignores `reversibility` field per §7; pattern still validates as v1.2 shape. |
+| v1.3 sender → v1.3 collector | ✅ Full feature set. Recommended path. |
 | Pre-v1.0 (`ars_version`) sender | ✅ Works. `ars_version` accepted as alias for `arp_version`. |
 - **Reorientation clause:** if any of the upstream lineage standards
   (Sentry / OTel GenAI / MCP / Claude Skills / OASF) absorbs the
@@ -1154,12 +1196,16 @@ The reference ARP collector at
 [`agentmindsdev/agentminds`](https://github.com/agentmindsdev/agentminds)
 exposes `/personalized-rules` with tier-segregated response arrays:
 
-- `top_production_observed` — patterns whose Pattern object (§4.1)
-  carries `status == "production_observed"`. Highest-confidence tier,
-  surfaced as a distinct array.
-- `top_documented` — patterns from documented sources (curated,
-  vendor docs, spec-derived). Trust by lineage rather than peer
-  observation.
+- `top_production_observed` — patterns the collector has tagged with
+  a production-observed signal (i.e. extracted from a real
+  closed-with-fix incident, postmortem, or peer-site report). The
+  tagging mechanism is collector-specific; the reference collector
+  uses an internal `production_signal_tier` field with values
+  `production_observed | community_validated | documented`. Highest-
+  confidence tier, surfaced as a distinct array.
+- `top_documented` — everything else (curated tier-1 hygiene rules,
+  vendor docs, spec-derived patterns, community-validated). Trust
+  by lineage rather than peer observation.
 - `top_rules` — mixed ranked list, retained for backward
   compatibility, deprecated for collector v1.4 removal.
 

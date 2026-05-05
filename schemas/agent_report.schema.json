@@ -333,6 +333,7 @@
         "confidence":             { "type": "number", "minimum": 0, "maximum": 1 },
         "impact":                 { "$ref": "#/$defs/Impact" },
         "status":                 { "$ref": "#/$defs/PatternStatus" },
+        "reversibility":          { "$ref": "#/$defs/Reversibility" },
         "first_seen":             { "$ref": "#/$defs/Timestamp" },
         "last_seen":              { "$ref": "#/$defs/Timestamp" },
         "first_seen_run":         { "type": "integer", "minimum": 0 },
@@ -344,6 +345,18 @@
         },
         "_meta":                  { "type": "object", "additionalProperties": true }
       }
+    },
+
+    "Reversibility": {
+      "description": "ARP §4.1.1 (v1.3.0): blast-radius classification used by collectors and consumers as an auto-application gating signal. Closed enum; null/absent MUST be treated as risky_infra-equivalent (conservative default — pre-classification null state never expands the auto-apply surface). Lineage: averageuser612 r/LangChain feedback 2026-05-04; deployment-system blast-radius tag tradition (Liquibase, SemVer breaking-change severity).",
+      "type": ["string", "null"],
+      "enum": [
+        "safe_config",
+        "reversible_code",
+        "risky_infra",
+        "security_critical",
+        null
+      ]
     },
 
     "Telemetry": {

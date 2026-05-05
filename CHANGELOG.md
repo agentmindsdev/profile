@@ -6,6 +6,69 @@ documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this profile adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] — 2026-05-05
+
+Minor release over v1.2.2. Single normative addition: blast-radius
+classification on the Pattern object, with a deliberate
+null-as-conservative-default contract for collectors.
+
+### Added
+
+- **§4.1.1 `Pattern.reversibility` (OPTIONAL)** — closed-enum field
+  classifying the blast radius of a pattern's recommended action.
+  Values: `safe_config`, `reversible_code`, `risky_infra`,
+  `security_critical`, `null`. Senders MAY emit; collectors MUST
+  treat absent or null as `risky_infra`-equivalent for
+  auto-application gating. Conservative-default-on-purpose: a
+  pre-classification null state must never expand the auto-apply
+  surface.
+- **`$defs.Reversibility`** in JSON Schema with the closed enum +
+  null. Validates all four named values, accepts null and absent,
+  rejects unknown strings.
+- **§7.1 v1.2.x ↔ v1.3 compatibility entries** — bidirectional
+  forward/backward compat verified. Old collectors ignore the new
+  field; old senders are gated as if reversibility were null
+  (= risky_infra).
+
+### Notes — no bulk backfill
+
+Implementations may leave existing patterns with null `reversibility`
+indefinitely. Bulk LLM reclassification of legacy patterns is **NOT**
+recommended:
+
+- A 5-15% mis-classification rate on a destructive pattern (DB drop
+  stamped as `safe_config`) would silently expand the auto-apply
+  surface across consuming sites — exactly the failure mode the
+  field is meant to prevent.
+- The conservative null-default makes legacy patterns safe by
+  design; pilot-driven manual classification when specific use
+  cases emerge is the recommended path.
+
+The reference harvester (`agentmindsdev/agentminds`,
+`master-agent-system/central_agents/external_pattern_harvester.py`)
+emits `reversibility` only when the action's category is
+unambiguous from the trigger and action text. Ambiguous patterns
+omit the field rather than guess.
+
+### Fixed
+
+- **§11.1 wording** — earlier draft said
+  `top_production_observed` patterns "carry `status ==
+  'production_observed'`", which conflicts with the §4.1
+  PatternStatus enum (`active | solved | obsolete`). Reworded to
+  describe the collector-internal `production_signal_tier` field
+  explicitly and note that the tagging mechanism is collector-
+  specific, not normative ARP.
+
+### Lineage
+
+- averageuser612 r/LangChain feedback point #4 (2026-05-04).
+- Conceptual parallel: blast-radius labels in deployment systems
+  (Liquibase safe/risky migration tags, SemVer breaking-change
+  severity, AWS CloudFormation update-replace policy).
+
+---
+
 ## [1.2.2] — 2026-05-05
 
 Patch release over v1.2.1. Single informative addition documenting
