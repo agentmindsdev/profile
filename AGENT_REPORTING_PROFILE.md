@@ -167,7 +167,7 @@ single JSON object with this top-level shape:
 
 ```jsonc
 {
-  "arp_version": "1.1",                      // optional but recommended
+  "arp_version": "1.2.1",                    // optional but recommended
   "agent": "<string>",                       // required
   "site_id": "<string>",                     // required (set by transport if omitted)
   "session_id":      "<string>",             // optional, v1.1 — multi-turn flow
@@ -179,7 +179,7 @@ single JSON object with this top-level shape:
   "project_info": { ... },                   // optional — see §6
   "schema": {                                // optional — see §7
     "name": "agentminds.arp",
-    "version": "1.1"
+    "version": "1.2.1"
   },
   "_meta": { ... }                           // optional, v1.1 — see §2.1
 }
@@ -865,6 +865,9 @@ consumes upstream MCP servers, or both.
 | v1.0 sender → v1.1 collector | ✅ Works unchanged. v1.0 fields are a subset of v1.1. |
 | v1.1 sender → v1.0 collector | ✅ Works. Collector ignores unknown fields per §7. New fields (`scores`, `_meta`, `session_id`, etc.) are silently dropped. |
 | v1.1 sender → v1.1 collector | ✅ Full feature set. Recommended path. |
+| v1.0 / v1.1 sender → v1.2 collector | ✅ Works. v1.2 collector accepts older payloads unchanged; v1.2-only features unused. |
+| v1.2 sender → v1.0 / v1.1 collector | ✅ Works. Collector ignores unknown fields per §7. v1.2 fields (e.g., `lifecycle_event`, `exception`, `handoffs`, `prompts`) are silently dropped. |
+| v1.2 sender → v1.2 collector | ✅ Full feature set. Recommended path. |
 | Pre-v1.0 (`ars_version`) sender | ✅ Works. `ars_version` accepted as alias for `arp_version`. |
 - **Reorientation clause:** if any of the upstream lineage standards
   (Sentry / OTel GenAI / MCP / Claude Skills / OASF) absorbs the
@@ -950,7 +953,7 @@ unlocks cross-site recommendation filtering at **L2**+.
 
 ```json
 {
-  "arp_version": "1.1",
+  "arp_version": "1.2.1",
   "agent": "uptime_agent",
   "site_id": "site_a1b2c3",
   "session_id": "run_2026-04-27T09:15Z",
