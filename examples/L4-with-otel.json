@@ -1,0 +1,57 @@
+{
+  "_comment": "L4 conformance — adds OpenTelemetry GenAI telemetry alongside the L3 pattern lifecycle, OR a project_info block describing the calling project's tech stack and skills. This example shows OTel; see the spec §5 for the full attribute set.",
+  "arp_version": "1.2.0",
+  "agent": "llm_router",
+  "site_id": "example_site",
+  "session_id": "sess-2026-05-05-08abc",
+  "report": {
+    "summary": "Routing decision recorded; tokens + latency emitted for the network",
+    "severity": "info",
+    "warnings": []
+  },
+  "memory": {
+    "learned_patterns": [
+      {
+        "fingerprint": "38d613435c587690d136cd793fad2492d1df342885eb35a4ec27ad0f23ae68ef",
+        "pattern": "fallback_to_haiku_on_overload",
+        "category": "infra",
+        "detail": "When the primary Sonnet endpoint returns 529 overload, fall back to Haiku for the next 60s before retrying Sonnet.",
+        "action": "Wire a 529-aware retry policy with a 60s primary cooldown.",
+        "confidence": 0.9,
+        "impact": "high",
+        "status": "solved",
+        "first_seen": "2026-05-01T09:00:00Z",
+        "last_seen": "2026-05-04T18:00:00Z"
+      }
+    ]
+  },
+  "telemetry": {
+    "spans": [
+      {
+        "name": "llm.chat",
+        "kind": "LLM",
+        "start_time": "2026-05-05T08:43:11.412Z",
+        "end_time": "2026-05-05T08:43:13.105Z",
+        "status_code": "OK",
+        "attributes": {
+          "gen_ai.system": "anthropic",
+          "gen_ai.request.model": "claude-sonnet-4-6",
+          "gen_ai.response.model": "claude-sonnet-4-6",
+          "gen_ai.usage.input_tokens": 412,
+          "gen_ai.usage.output_tokens": 178,
+          "gen_ai.response.finish_reasons": ["stop"]
+        }
+      }
+    ],
+    "metrics": [
+      {
+        "name": "gen_ai.client.token.usage",
+        "type": "counter",
+        "unit": "{token}",
+        "data_points": [
+          { "value": 590, "attributes": { "gen_ai.system": "anthropic", "gen_ai.token.type": "total" } }
+        ]
+      }
+    ]
+  }
+}

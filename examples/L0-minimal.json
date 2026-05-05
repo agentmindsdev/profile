@@ -1,0 +1,11 @@
+{
+  "_comment": "L0 minimal report — only `agent` + `report` are required at top level. Smallest payload that ARP collectors will accept.",
+  "arp_version": "1.2.0",
+  "agent": "context_retriever",
+  "report": {
+    "summary": "Agent failed to retrieve context within timeout",
+    "warnings": [
+      { "message": "Context window exceeded — retrieval truncated" }
+    ]
+  }
+}

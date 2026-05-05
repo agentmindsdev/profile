@@ -1,0 +1,39 @@
+{
+  "_comment": "L3 conformance — adds §4.1 Pattern objects under memory.learned_patterns. This is the only ARP primitive not inherited from an upstream standard: a stable fingerprint + lifecycle status that lets cross-site collectors deduplicate, age out, and rank patterns from peer sites. L3 is required to participate in cross-site recommendation filtering.",
+  "arp_version": "1.2.0",
+  "agent": "performance",
+  "site_id": "example_site",
+  "report": {
+    "summary": "p95 latency drift detected; pattern saved for cross-site comparison",
+    "severity": "warning",
+    "warnings": [
+      {
+        "fingerprint": "85ce5fe308d1dfdc6d590b7e7bfc1d5cd038a370a0a84a5b48948f7a2ad7dade",
+        "message": "p95 jumped from 800ms to 2.1s after worker restart",
+        "level": "warning",
+        "severity": "high",
+        "category": "performance",
+        "status": "unresolved",
+        "first_seen": "2026-05-04T10:00:00Z",
+        "last_seen": "2026-05-05T11:00:00Z",
+        "count": 34
+      }
+    ]
+  },
+  "memory": {
+    "learned_patterns": [
+      {
+        "fingerprint": "995d23a20b6ee64af6d86f876ebfb3ff6067d816465c733fee66a8627c3c3942",
+        "pattern": "render_cold_start_p95_drift",
+        "category": "performance",
+        "detail": "Render Standard tier worker swap causes p95 latency to triple for ~90s after deploy. Pre-warming via /health pings every 60s mitigates the drift.",
+        "action": "Add a cron-style /health probe every 60s; consider scaling worker count if drift persists.",
+        "confidence": 0.85,
+        "impact": "high",
+        "status": "active",
+        "first_seen": "2026-04-29T14:22:00Z",
+        "last_seen": "2026-05-05T11:00:00Z"
+      }
+    ]
+  }
+}

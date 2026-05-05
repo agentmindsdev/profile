@@ -1,0 +1,45 @@
+name: Validate examples
+
+# Runs on every push and PR. Validates every JSON file in examples/
+# against schemas/agent_report.schema.json. Catches schema drift and
+# accidental example breakage before consumers see it.
+
+on:
+  push:
+    paths:
+      - 'examples/**'
+      - 'schemas/**'
+      - '.github/workflows/validate-examples.yml'
+  pull_request:
+    paths:
+      - 'examples/**'
+      - 'schemas/**'
+      - '.github/workflows/validate-examples.yml'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install ajv-cli
+        run: npm install -g ajv-cli@5 ajv-formats@3
+
+      - name: Validate all examples
+        run: |
+          set -e
+          for f in examples/*.json; do
+            [ "$f" = "examples/*.json" ] && { echo "no examples found"; exit 1; }
+            echo "validating $f"
+            ajv validate \
+              -s schemas/agent_report.schema.json \
+              -d "$f" \
+              --spec=draft2020 \
+              --strict=false \
+              -c ajv-formats
+          done
+          echo "all examples valid against schema"

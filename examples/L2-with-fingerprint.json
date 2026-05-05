@@ -1,0 +1,23 @@
+{
+  "_comment": "L2 conformance — adds Sentry-aligned issue lifecycle to each warning. `fingerprint` lets the collector deduplicate identical failures across runs; `first_seen`/`last_seen`/`count` let consumers track frequency without storing every occurrence. This is the level AgentMinds recommends for production senders.",
+  "arp_version": "1.2.0",
+  "agent": "tool_router",
+  "site_id": "example_site",
+  "report": {
+    "summary": "Tool routing fell back to default twice in 24h",
+    "severity": "warning",
+    "warnings": [
+      {
+        "fingerprint": "276d48552322aa52598899f9e8818f87446fe7d384d3f7b9e427e7249118943f",
+        "message": "Unknown tool name; routed to default handler",
+        "level": "warning",
+        "severity": "medium",
+        "category": "infra",
+        "status": "unresolved",
+        "first_seen": "2026-05-04T10:12:00Z",
+        "last_seen": "2026-05-05T08:43:11Z",
+        "count": 17
+      }
+    ]
+  }
+}
