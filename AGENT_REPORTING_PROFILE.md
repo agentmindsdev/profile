@@ -119,7 +119,24 @@ POST, MCP, gRPC over SLIM) to get a full agent-to-platform pipeline.
 
 ## 1. Glossary and normative references
 
-### 1.5 Normative references (v1.2.1)
+### 1.1 Glossary
+
+- **Agent** — A named software process that observes a system and emits
+  reports about it. (`uptime_agent`, `seo_agent`, `freshness_agent`)
+- **Report** — A single envelope produced by one agent at one moment in
+  time, carrying warnings, recommendations, learned patterns, and
+  optional telemetry.
+- **Warning** — An observation the agent flagged as problematic.
+- **Recommendation** — A proposed action attached to one or more
+  warnings, or surfaced standalone.
+- **Pattern** — A reusable observation extracted from many runs of an
+  agent across one or more sites; intended for cross-agent learning.
+- **Fingerprint** — A stable hash that uniquely identifies a warning or
+  pattern across time and across reporters, used for deduplication and
+  cross-site correlation.
+- **Site** — The system being observed. Identified by a stable `site_id`.
+
+### 1.2 Normative references (v1.2.1)
 
 The following upstream specs are cited NORMATIVELY by ARP. Implementations
 MUST honour the latest version listed unless otherwise stated.
@@ -140,23 +157,6 @@ Agents SDK proprietary tracing backend, the LangSmith vendor-locked
 backend, and the AGNTCY SLIM transport are each cited only at the
 schema/vocabulary level — ARP does not take a runtime dependency on
 any of them. See §13 (REJECT list).
-
-### 1. Glossary
-
-- **Agent** — A named software process that observes a system and emits
-  reports about it. (`uptime_agent`, `seo_agent`, `freshness_agent`)
-- **Report** — A single envelope produced by one agent at one moment in
-  time, carrying warnings, recommendations, learned patterns, and
-  optional telemetry.
-- **Warning** — An observation the agent flagged as problematic.
-- **Recommendation** — A proposed action attached to one or more
-  warnings, or surfaced standalone.
-- **Pattern** — A reusable observation extracted from many runs of an
-  agent across one or more sites; intended for cross-agent learning.
-- **Fingerprint** — A stable hash that uniquely identifies a warning or
-  pattern across time and across reporters, used for deduplication and
-  cross-site correlation.
-- **Site** — The system being observed. Identified by a stable `site_id`.
 
 ---
 
