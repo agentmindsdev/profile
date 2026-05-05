@@ -981,6 +981,15 @@ all features at levels ≤ N.
 The current AgentMinds collector requires **L0**; recommends **L2**;
 unlocks cross-site recommendation filtering at **L2**+.
 
+### 9.1 Eval set reference (v0 strawman)
+
+A public eval set strawman is available at
+[`eval-set/v0-strawman.md`](eval-set/v0-strawman.md). Conformant
+collectors at **L1+** are encouraged to self-test recall/noise on
+shared rows; this is the open contract behind retrieval-quality
+claims. Schema and rows are open for delta — **not normative until
+v1.0**. License: CC-BY-4.0, no single owner.
+
 ---
 
 ## 10. Worked example — minimal L2 report

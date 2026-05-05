@@ -66,6 +66,8 @@ surface — it is not an anchor for your own architecture.
 - **[schemas/agent_report.schema.json](schemas/agent_report.schema.json)** —
   machine-readable JSON Schema (draft 2020-12)
 - **[examples/](examples/)** — concrete payloads for L0 / L2 / L3 / L4
+- **[eval-set/v0-strawman.md](eval-set/v0-strawman.md)** — Eval set v0
+  strawman (open for delta; not normative until v1.0)
 - **[CHANGELOG.md](CHANGELOG.md)** — version history
 
 ## Latest version: v1.2.1
