@@ -72,7 +72,7 @@ surface — it is not an anchor for your own architecture.
 
 Phase 2 of the v1.1 deepdive plan, additive over v1.0 / v1.1.x:
 
-- `lifecycle_event` envelope (cold-start / wake / scheduled / shutdown)
+- `lifecycle_event` envelope (cold_start / wake / scheduled / shutdown / running)
 - `Exception` evidence shape (Sentry-aligned `mechanism.handled`)
 - `dotted_order` on telemetry spans (LangSmith-compatible)
 - `Handoff` primitive for multi-agent delegation events
