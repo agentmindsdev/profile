@@ -6,6 +6,32 @@ documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this profile adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.2] — 2026-05-05
+
+Patch release over v1.2.1. Single informative addition documenting
+the reference collector's tier-segregated delivery shape. No
+normative changes; v1.2.1 senders and collectors remain conformant.
+
+### Added
+
+- **§11.1 Reference collector — tier-segregated delivery
+  (informative)** — Worked example describing how the reference
+  AgentMinds collector surfaces Pattern `status` (§4.1) in its
+  `/personalized-rules` response: `top_production_observed` and
+  `top_documented` as separate arrays, with `top_rules` (mixed)
+  retained for backward compatibility and deprecated for collector
+  v1.4 removal. Documented for other implementers facing the same
+  UI/API surface question.
+
+### Notes
+
+- This is a **profile-internal informative** addition. Collectors
+  choose how to surface tiers in their delivery APIs; the Pattern
+  object's `status` field remains the canonical tier indicator.
+- Backend implementation: agentminds commit `96c720e` (2026-05-05).
+
+---
+
 ## [1.2.1] — 2026-05-05
 
 Patch release over v1.2.0. Five cross-standard alias / bridge / discovery

@@ -1148,6 +1148,33 @@ These three primitives compose: a single payload MAY carry a
 - Reference Python SDK: [`agentminds`](https://pypi.org/project/agentminds/) ≥ 0.4.0.
 - Reference Node SDK: [`@agentmindsdev/node`](https://www.npmjs.com/package/@agentmindsdev/node) ≥ 0.3.0.
 
+### 11.1 Reference collector — tier-segregated delivery (informative)
+
+The reference ARP collector at
+[`agentmindsdev/agentminds`](https://github.com/agentmindsdev/agentminds)
+exposes `/personalized-rules` with tier-segregated response arrays:
+
+- `top_production_observed` — patterns whose Pattern object (§4.1)
+  carries `status == "production_observed"`. Highest-confidence tier,
+  surfaced as a distinct array.
+- `top_documented` — patterns from documented sources (curated,
+  vendor docs, spec-derived). Trust by lineage rather than peer
+  observation.
+- `top_rules` — mixed ranked list, retained for backward
+  compatibility, deprecated for collector v1.4 removal.
+
+This separation is a **collector-side delivery profile**, not
+normative ARP. The Pattern object itself (§4.1) carries `status` as
+the canonical tier indicator; collectors are free to surface that
+tier in their delivery API however they prefer. The reference
+collector's choice (separate arrays + deprecation path) is
+documented here as a worked example for other implementers facing
+the same UI/API surface question.
+
+Backend implementation: agentminds commit
+[`96c720e`](https://github.com/agentmindsdev/agentminds/commit/96c720e)
+(2026-05-05).
+
 ## 12. Public comment
 
 Issues, suggestions, and PRs welcome at
