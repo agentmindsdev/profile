@@ -432,31 +432,6 @@ OpenInference adopters) surface cross-site patterns without wiring
 ARP push directly. Implementation in a future ARP collector; spec
 text is informative as of v1.2.1.
 
-### 3.6 `Breadcrumb` trail (v1.1.1)
-
-A `Breadcrumb` is a timestamped event leading up to a Warning.
-Sentry-aligned. Critical for understanding *cascade failures* —
-the chain of "user clicked X → DB query Y → 500 from Z" before the
-warning fired.
-
-```jsonc
-{
-  "timestamp": "<RFC 3339>",
-  "type":      "navigation" | "http" | "error" | "info"
-              | "query" | "ui" | "user" | "default",
-  "category":  "<free-form, e.g. 'console', 'fetch', 'agent.call'>",
-  "message":   "<human-readable>",
-  "level":     "<Severity>",
-  "data":      { ... }
-}
-```
-
-Attach as `Warning.breadcrumbs[]` (optional). Senders SHOULD cap
-at ~50 breadcrumbs per warning to avoid payload bloat. Order
-chronologically (oldest first, most-recent last).
-
-**REQUIRED:** `timestamp`, `type`. Everything else is OPTIONAL.
-
 ### 3.5 `Score` object (v1.1)
 
 Typed evaluation outcome. Lineage: Langfuse Score model + LangSmith
@@ -501,6 +476,31 @@ report as a whole — without overloading `Recommendation.confidence`
   the recommendation itself.
 
 The two coexist; they are not aliases.
+
+### 3.6 `Breadcrumb` trail (v1.1.1)
+
+A `Breadcrumb` is a timestamped event leading up to a Warning.
+Sentry-aligned. Critical for understanding *cascade failures* —
+the chain of "user clicked X → DB query Y → 500 from Z" before the
+warning fired.
+
+```jsonc
+{
+  "timestamp": "<RFC 3339>",
+  "type":      "navigation" | "http" | "error" | "info"
+              | "query" | "ui" | "user" | "default",
+  "category":  "<free-form, e.g. 'console', 'fetch', 'agent.call'>",
+  "message":   "<human-readable>",
+  "level":     "<Severity>",
+  "data":      { ... }
+}
+```
+
+Attach as `Warning.breadcrumbs[]` (optional). Senders SHOULD cap
+at ~50 breadcrumbs per warning to avoid payload bloat. Order
+chronologically (oldest first, most-recent last).
+
+**REQUIRED:** `timestamp`, `type`. Everything else is OPTIONAL.
 
 ---
 
