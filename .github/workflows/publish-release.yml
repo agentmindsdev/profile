@@ -1,0 +1,79 @@
+name: Publish Release
+
+# Auto-publishes a GitHub Release when a vX.Y.Z tag is pushed (or
+# manually via workflow_dispatch). The annotated tag's subject line
+# becomes the release title; the body becomes the release notes.
+#
+# Idempotent: softprops/action-gh-release updates an existing release
+# instead of failing if the tag already has one.
+#
+# Pre-release detection: any tag with a hyphen suffix (v1.3.0-rc1,
+# v2.0.0-beta) is marked pre-release; clean semver tags are marked
+# latest.
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+      - 'v[0-9]+.[0-9]+.[0-9]+-*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to publish (e.g. v1.3.0). Tag must already exist.'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve tag
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG="${{ github.event.inputs.tag }}"
+          else
+            TAG="${GITHUB_REF#refs/tags/}"
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          if [[ "$TAG" == *-* ]]; then
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout at tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.tag.outputs.tag }}
+          fetch-depth: 0
+
+      - name: Extract annotated tag subject + body
+        id: meta
+        run: |
+          TAG="${{ steps.tag.outputs.tag }}"
+          SUBJECT=$(git tag -l --format='%(contents:subject)' "$TAG")
+          BODY=$(git tag -l --format='%(contents:body)' "$TAG")
+          if [ -z "$SUBJECT" ]; then
+            echo "::error::Tag $TAG has no annotated subject. Use 'git tag -a $TAG -m ...' (annotated)."
+            exit 1
+          fi
+          echo "subject=$SUBJECT" >> "$GITHUB_OUTPUT"
+          {
+            echo "body<<RELEASE_BODY_EOF"
+            echo "$BODY"
+            echo "RELEASE_BODY_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: ${{ steps.meta.outputs.subject }}
+          body: ${{ steps.meta.outputs.body }}
+          prerelease: ${{ steps.tag.outputs.prerelease }}
+          make_latest: ${{ steps.tag.outputs.prerelease == 'false' && 'true' || 'false' }}
+          fail_on_unmatched_files: false
