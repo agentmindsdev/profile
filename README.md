@@ -72,21 +72,57 @@ surface — it is not an anchor for your own architecture.
 
 ## Latest version: v1.3.0
 
-Minor release adding a single normative primitive on the Pattern
-object — blast-radius classification for auto-application gating.
+Released 2026-04-26 (live in this repo as the `v1.3.0` tag).
+Minor release. Backwards-compatible — v1.2.x senders and
+collectors continue to work; new fields are additive.
 
-- **§4.1.1 `reversibility`** — closed-enum field
-  (`safe_config` / `reversible_code` / `risky_infra` /
-  `security_critical` / `null`) used by collectors and consumers as
-  an auto-apply gating signal. Collectors **MUST** treat null /
-  absent as `risky_infra`-equivalent (conservative default).
-  Lineage: blast-radius tags in deployment systems (Liquibase,
-  SemVer breaking-change severity).
-- Reference collector tier-segregation (B1) — `agentmindsdev/agentminds`
-  returns `top_production_observed` and `top_documented` as distinct
-  `/personalized-rules` response arrays, deprecating the mixed
-  `top_rules` array for v1.4 removal. Collector-side delivery
-  profile, documented in §11.1 (informative).
+### Spec additions
+
+- **§4.1.1 `reversibility`** (B2) — closed-enum field on the
+  `Pattern` object: `safe_config` / `reversible_code` /
+  `risky_infra` / `security_critical` / `null`. Used by collectors
+  and consumers as an auto-apply gating signal. Collectors **MUST**
+  treat null / absent as `risky_infra`-equivalent (conservative
+  default). Lineage: blast-radius tags in deployment systems
+  (Liquibase, SemVer breaking-change severity).
+
+### Reference collector additions (informative)
+
+These describe the `agentmindsdev/agentminds` collector's
+delivery surface; they are not normative for the profile but are
+documented in §11.1 as worked examples.
+
+- **B1 — Split top-rules arrays.** `/personalized-rules` returns
+  `top_production_observed` and `top_documented` as distinct
+  arrays. The mixed `top_rules` array is kept for backwards
+  compatibility, slated for v1.4 removal.
+- **A3 — `negative_evidence` array.** Filtered patterns are now
+  surfaced with explicit reason enum
+  (`site_type_mismatch_narrow` / `already_applied` /
+  `non_english_content` / `low_confidence` / `bundle_size_exceeded`).
+  Consumers can render these as "we considered this but excluded
+  it" UX, instead of silently dropping candidates.
+- **F0 — Non-English content filter.** The reference collector
+  filters non-English pattern submissions before scoring; rejected
+  candidates surface in `negative_evidence` with reason
+  `non_english_content`.
+
+### `spec_version` field value
+
+Backend responses (`/sync/me`, `/sync/personalized-rules`,
+`/sync/pool-stats`) report `spec_version: "ARP-1.3.0"` from this
+release onward. Earlier deployments returned `"ARP-1.1"` until
+the drift was reconciled in `agentminds@2a2d5f0`.
+
+### Implementation status
+
+| Surface | Version | Live |
+|---|---|---|
+| Spec (this repo) | `v1.3.0` tag | ✓ |
+| Backend collector | `agentminds@a8c23b3+` (api.agentminds.dev) | ✓ |
+| MCP server | `agentminds-mcp@1.3.2+` (npm) | ✓ |
+| Node SDK | `@agentmindsdev/node@0.4.0+` (npm) | ✓ |
+| Python SDK | `agentminds@0.5.0+` (PyPI) | ✓ |
 
 ## What's new in v1.2.2
 
