@@ -72,7 +72,7 @@ surface — it is not an anchor for your own architecture.
 
 ## Latest version: v1.3.0
 
-Released 2026-04-26 (live in this repo as the `v1.3.0` tag).
+Released 2026-05-08 (live in this repo as the `v1.3.0` tag).
 Minor release. Backwards-compatible — v1.2.x senders and
 collectors continue to work; new fields are additive.
 

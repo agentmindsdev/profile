@@ -6,11 +6,13 @@ documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this profile adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.3.0] — 2026-05-05
+## [1.3.0] — 2026-05-08
 
-Minor release over v1.2.2. Single normative addition: blast-radius
-classification on the Pattern object, with a deliberate
-null-as-conservative-default contract for collectors.
+Minor release over v1.2.2. Single normative addition (B2: blast-
+radius classification on the Pattern object) with a deliberate
+null-as-conservative-default contract for collectors, plus three
+informative collector-side delivery additions (B1 / A3 / F0)
+documented as worked examples for implementers.
 
 ### Added
 
@@ -59,6 +61,45 @@ omit the field rather than guess.
   describe the collector-internal `production_signal_tier` field
   explicitly and note that the tagging mechanism is collector-
   specific, not normative ARP.
+
+### Reference collector additions (informative, not normative)
+
+These describe the `agentmindsdev/agentminds` collector's
+delivery surface; documented in §11.1 as worked examples.
+Other ARP-conformant collectors are free to deliver differently.
+
+- **B1 — Split top-rules arrays.** `/personalized-rules` returns
+  `top_production_observed` and `top_documented` as distinct
+  arrays. The mixed `top_rules` array is kept for backwards
+  compatibility, slated for v1.4 removal.
+- **A3 — `negative_evidence` array.** Filtered patterns are now
+  surfaced with explicit reason enum
+  (`site_type_mismatch_narrow` / `already_applied` /
+  `non_english_content` / `low_confidence` /
+  `bundle_size_exceeded`). Consumers can render these as
+  "considered but excluded" UX, instead of silently dropping
+  candidates.
+- **F0 — Non-English content filter.** The reference collector
+  filters non-English pattern submissions before scoring;
+  rejected candidates surface in `negative_evidence` with reason
+  `non_english_content`.
+
+### Changed
+
+- `spec_version` field across `/sync/me`, `/sync/personalized-
+  rules`, and `/sync/pool-stats` now reports `"ARP-1.3.0"`. Pre-
+  2026-05-09 deployments returned `"ARP-1.1"` until the drift was
+  reconciled in `agentminds@2a2d5f0`.
+
+### Implementation status (as of release)
+
+| Surface | Version | Live |
+|---|---|---|
+| Spec (this repo) | `v1.3.0` tag | ✓ |
+| Backend collector | `agentminds@a8c23b3+` (api.agentminds.dev) | ✓ |
+| MCP server | `agentminds-mcp@1.3.2+` (npm) | ✓ |
+| Node SDK | `@agentmindsdev/node@0.4.0+` (npm) | ✓ |
+| Python SDK | `agentminds@0.5.0+` (PyPI) | ✓ |
 
 ### Lineage
 
